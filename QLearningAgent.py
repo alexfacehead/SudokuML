@@ -67,41 +67,48 @@ class QLearningAgent():
     
     def explore(self, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
         shuffled_actions = tf.random.shuffle(available_actions)
-        return tuple(tf.gather(shuffled_actions, 0).numpy())
+        return tuple(tf.gather(shuffled_actions, 0))
 
     def exploit(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
         q_values = self.model.predict(tf.reshape(state, (1, 9, 9, 1)))
         q_values = tf.reshape(q_values, (9, 9, 9))
         mask = tf.zeros((9, 9, 9))
         for action in available_actions:
-            mask = mask + tf.reshape(tf.one_hot(action, 9 * 9 * 9), (9, 9, 9)) # use tf.reshape instead of numpy
+            mask = mask + tf.reshape(tf.one_hot(action, 9 * 9 * 9), (9, 9, 9)) # use tf.reshape
         masked_q_values = q_values * mask
         best_action = tf.unravel_index(tf.argmax(masked_q_values), masked_q_values.shape)
-        return tuple(best_action.numpy())
+        return tuple(best_action)
 
     def replay(self, batch_size: int) -> None:
+        # get the batch tensor of shape (batch_size, 5)
         batch = self.create_experience_batch(batch_size)
+        # unpack the batch tensor into five tensors of shape (batch_size, ...)
+        state, action, reward, next_state, done = tf.unstack(batch, axis=1)
 
-        states, target_q_values = [], []
-        for state, action, reward, next_state, done in batch:
-            if done:
-                target_q_value = reward
+        # create empty tensors for states and target_q_values
+        states = tf.zeros((0, 9, 9, 1))
+        target_q_values = tf.zeros((0, 9, 9, 9))
+        
+        # iterate over the batch size dimension
+        for i in range(batch_size):
+            if done[i]:
+                target_q_value = reward[i]
             else:
-                next_q_values = self.target_model.predict(tf.reshape(next_state, (1, 9, 9, 1)))
-                target_q_value = reward + self.discount_factor * tf.reduce_max(next_q_values)
+                next_q_values = self.target_model.predict(tf.reshape(next_state[i], (1, 9, 9, 1)))
+                target_q_value = reward[i] + self.discount_factor * tf.reduce_max(next_q_values)
 
-            current_q_values = self.model.predict(tf.reshape(state, (1, 9, 9, 1)))
+            current_q_values = self.model.predict(tf.reshape(state[i], (1, 9, 9, 1)))
             current_q_values = tf.reshape(current_q_values, (9, 9, 9))
-            current_q_values = current_q_values.numpy()
-            current_q_values[action] = target_q_value
+            current_q_values = tf.tensor_scatter_nd_update(current_q_values, [action[i]], [target_q_value])
 
-            states.append(state)
-            target_q_values.append(current_q_values)
+            # concatenate the state and current_q_values tensors to the existing ones
+            states = tf.concat([states, tf.reshape(state[i], (1, 9, 9, 1))], axis=0)
+            target_q_values = tf.concat([target_q_values, tf.reshape(current_q_values[i], (1, 9, 9, 9))], axis=0)
 
-        # create a dataset from lists of tensors directly
+        # create a dataset from tensors directly
         dataset = tf.data.Dataset.from_tensor_slices((states, target_q_values))
         # optionally shuffle and batch the dataset
-        dataset = dataset.shuffle(buffer_size=len(states)).batch(batch_size)
+        dataset = dataset.shuffle(buffer_size=tf.size(states)).batch(batch_size)
 
         with self.tpu_strategy.scope():
             # iterate over the dataset and train on each batch
@@ -111,16 +118,23 @@ class QLearningAgent():
     def remember(self, state: tf.Tensor, action: Tuple[int, int, int], reward: float, next_state: tf.Tensor, done: bool) -> None:
         self.memory.append((state, action, reward, next_state, done))
 
-    def create_experience_batch(self, batch_size: int) -> List[Tuple[tf.Tensor, Tuple[int, int, int], float, tf.Tensor, bool]]:
-        batch = []
+    def create_experience_batch(self, batch_size: int) -> tf.Tensor:
+        # create an empty tensor of shape (0, 5)
+        batch = tf.zeros((0, 5))
         if len(self.memory) < batch_size:
             batch_size = len(self.memory)
 
         indices = tf.random.shuffle(tf.range(len(self.memory)))[:batch_size]
         for idx in indices:
-            batch.append(self.memory[idx.numpy()])
+            # get the experience tuple from the memory
+            experience = self.memory[idx.numpy()]
+            # convert the tuple to a tensor of shape (1, 5)
+            experience_tensor = tf.stack(experience, axis=0)[tf.newaxis, ...]
+            # concatenate the experience tensor to the batch tensor
+            batch = tf.concat([batch, experience_tensor], axis=0)
 
         return batch
+
 
 
     def update_target_q_network(self) -> None:

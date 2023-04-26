@@ -10,7 +10,12 @@ class SudokuEnvironment():
         self.incorrect_moves_count = 0
 
     def reset(self) -> tf.Tensor:
-        self.board = random.choice(self.sudoku_boards) # choose a random puzzle from the list
+        # convert the list of sudoku boards to a tensor of shape (n, 9, 9)
+        self.sudoku_boards = tf.convert_to_tensor(self.sudoku_boards)
+        # choose a random index from 0 to n-1
+        index = tf.random.uniform((), minval=0, maxval=tf.shape(self.sudoku_boards)[0], dtype=tf.int32)
+        # select the board at that index
+        self.board = self.sudoku_boards[index]
         self.incorrect_moves_count = 0
         return self.board
     
