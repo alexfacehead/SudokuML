@@ -1,16 +1,20 @@
 import tensorflow as tf
-import numpy as np
 from keras.optimizers.schedules.learning_rate_schedule import ExponentialDecay
 from typing import List, Tuple
 from collections import deque
+import re
+import os
 
 class QLearningAgent():
-    def __init__(self, learning_rate: float, discount_factor: float, exploration_rate: float, exploration_decay: float, tpu_strategy: tf.distribute.TPUStrategy, decay_steps: int, max_memory_size: int):
+    def __init__(self, learning_rate: float, discount_factor: float, exploration_rate: \
+                 float, exploration_decay: float, tpu_strategy: tf.distribute.TPUStrategy, decay_steps: \
+                    int, max_memory_size: int, file_path: str):
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
         self.tpu_strategy = tpu_strategy
         self.memory = deque(maxlen=max_memory_size)
+        self.file_path = file_path
 
         self.exploration_decay_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=self.exploration_rate,
@@ -24,7 +28,8 @@ class QLearningAgent():
             self.target_model = self.create_q_network()
             self.update_target_q_network()
 
-    def make_model(self, conv_layers: int, conv_filters: List[int], dense_layers: int, dense_units: List[int]) -> tf.keras.Model:
+    # Generalizable method
+    def _make_model(self, conv_layers: int, conv_filters: List[int], dense_layers: int, dense_units: List[int]) -> tf.keras.Model:
         inputs = tf.keras.Input(shape=(9, 9, 1))
         
         x = inputs
@@ -43,7 +48,8 @@ class QLearningAgent():
         
         return model
 
-    def create_q_network(self):
+    # Specific method to make a Q-network architecture
+    def create_q_network(self) -> tf.keras.Model:
         conv_layers = 2
         conv_filters = [64, 128]
         dense_layers = 2
@@ -53,75 +59,97 @@ class QLearningAgent():
     
     # available_actions : List[Tuple[int, int, int]]
     # is train is True, we want exploration. if train is False, we want only exploitation/learned policy
-    def choose_action(self, state: np.ndarray, available_actions: List[Tuple[int, int, int]], train: bool = True) -> Tuple[int, int, int]:
-        if train and np.random.rand() < self.exploration_rate:
+    def choose_action(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]], train: bool=True) -> Tuple[int, int, int]:
+        if train and tf.random.uniform(()) <= self.exploration_rate:
             return self.explore(available_actions)
         else:
             return self.exploit(state, available_actions)
     
     def explore(self, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
-        return np.random.choice(available_actions)
+        shuffled_actions = tf.random.shuffle(available_actions)
+        return tuple(tf.gather(shuffled_actions, 0).numpy())
 
-    def exploit(self, state: np.ndarray, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
-        q_values = self.model.predict(state.reshape(1, 9, 9, 1))
-        q_values = q_values.reshape(9, 9, 9)
-        
-        max_q_value = -np.inf
-        best_action = None
-        
+    def exploit(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
+        q_values = self.model.predict(tf.reshape(state, (1, 9, 9, 1)))
+        q_values = tf.reshape(q_values, (9, 9, 9))
+        mask = tf.zeros((9, 9, 9))
         for action in available_actions:
-            q_value = q_values[action]
-            if q_value > max_q_value:
-                max_q_value = q_value
-                best_action = action
-                
-        return best_action
+            mask = mask + tf.reshape(tf.one_hot(action, 9 * 9 * 9), (9, 9, 9)) # use tf.reshape instead of numpy
+        masked_q_values = q_values * mask
+        best_action = tf.unravel_index(tf.argmax(masked_q_values), masked_q_values.shape)
+        return tuple(best_action.numpy())
 
-    def remember(self, state: np.ndarray, action: Tuple[int, int, int], reward: float, next_state: np.ndarray, done: bool):
-        self.memory.append((state, action, reward, next_state, done))
-
-    def create_experience_batch(self, batch_size: int) -> List[Tuple[np.ndarray, Tuple[int, int, int], float, np.ndarray, bool]]:
-        batch = []
-        if len(self.memory) < batch_size:
-            batch_size = len(self.memory)
-
-        indices = np.random.choice(len(self.memory), batch_size, replace=False)
-        for idx in indices:
-            batch.append(self.memory[idx])
-
-        return batch
-
-    def replay(self, batch_size: int):
+    def replay(self, batch_size: int) -> None:
         batch = self.create_experience_batch(batch_size)
-        
+
         states, target_q_values = [], []
         for state, action, reward, next_state, done in batch:
             if done:
                 target_q_value = reward
             else:
-                next_q_values = self.target_model.predict(next_state.reshape(1, 9, 9, 1))
-                target_q_value = reward + self.discount_factor * np.max(next_q_values)
-            
-            current_q_values = self.model.predict(state.reshape(1, 9, 9, 1))
-            current_q_values.reshape(9, 9, 9)[action] = target_q_value
-            
+                next_q_values = self.target_model.predict(tf.reshape(next_state, (1, 9, 9, 1)))
+                target_q_value = reward + self.discount_factor * tf.reduce_max(next_q_values)
+
+            current_q_values = self.model.predict(tf.reshape(state, (1, 9, 9, 1)))
+            current_q_values = tf.reshape(current_q_values, (9, 9, 9))
+            current_q_values = current_q_values.numpy()
+            current_q_values[action] = target_q_value
+
             states.append(state)
             target_q_values.append(current_q_values)
-        
-        states = np.array(states)
-        target_q_values = np.array(target_q_values)
-        
-        with self.tpu_strategy.scope():
-            self.model.train_on_batch(states, target_q_values)
 
-    def update_target_q_network(self):
+        # create a dataset from lists of tensors directly
+        dataset = tf.data.Dataset.from_tensor_slices((states, target_q_values))
+        # optionally shuffle and batch the dataset
+        dataset = dataset.shuffle(buffer_size=len(states)).batch(batch_size)
+
+        with self.tpu_strategy.scope():
+            # iterate over the dataset and train on each batch
+            for states_batch, target_q_values_batch in dataset:
+                self.model.train_on_batch(states_batch, target_q_values_batch)
+    
+    def remember(self, state: tf.Tensor, action: Tuple[int, int, int], reward: float, next_state: tf.Tensor, done: bool) -> None:
+        self.memory.append((state, action, reward, next_state, done))
+
+    def create_experience_batch(self, batch_size: int) -> List[Tuple[tf.Tensor, Tuple[int, int, int], float, tf.Tensor, bool]]:
+        batch = []
+        if len(self.memory) < batch_size:
+            batch_size = len(self.memory)
+
+        indices = tf.random.shuffle(tf.range(len(self.memory)))[:batch_size]
+        for idx in indices:
+            batch.append(self.memory[idx.numpy()])
+
+        return batch
+
+
+    def update_target_q_network(self) -> None:
         self.target_model.set_weights(self.model.get_weights())
 
-    def save_weights(self, file_path: str):
-        self.model.save_weights(file_path)
+    def save_weights(self) -> None:
+            next_epoch = self.get_highest_epoch() + 1
+            new_file_name = f"epoch_{next_epoch}.pt"
+            new_file_path = os.path.join(self.file_path, new_file_name)
+            self.model.save_weights(new_file_path)
 
-    def load_weights(self, file_path: str):
-        self.model.load_weights(file_path)
+    def load_weights(self) -> None:
+        highest_epoch = self.get_highest_epoch()
+        if highest_epoch == -1:
+            raise FileNotFoundError(f"No weights file found in {self.file_path} directory")
+        else:
+            highest_file_name = f"epoch_{highest_epoch}.pt"
+            highest_file_path = os.path.join(self.file_path, highest_file_name)
+            self.model.load_weights(highest_file_path)
+
+    def get_highest_epoch(self) -> int:
+        files = os.listdir(self.file_path)
+        pattern = re.compile(r"epoch_(\d+)\.pt")
+        files = [f for f in files if pattern.match(f)]
+        if not files:
+            return -1
+        else:
+            epochs = [int(pattern.match(f).group(1)) for f in files]
+            return max(epochs)
 
     def set_exploration_rate(self, rate: float):
         self.exploration_rate = rate

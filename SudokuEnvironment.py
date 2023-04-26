@@ -1,41 +1,50 @@
 from typing import List, Tuple
-import numpy as np
+import tensorflow as tf
 
 class SudokuEnvironment():
-    # np.ndarray
-    def __init__(self, sudoku_board: np.ndarray):
-        self.initial_board = sudoku_board.copy()
-        self.board = sudoku_board.copy()
+    # tensor
+    def __init__(self, sudoku_boards: List[tf.Tensor], max_incorrect_moves: int=5):
+        self.sudoku_boards = sudoku_boards # store the list of puzzles
+        self.board = None # initialize the board as None
+        self.max_incorrect_moves = max_incorrect_moves
+        self.incorrect_moves_count = 0
 
-    def reset(self) -> np.ndarray:
-        self.board = self.initial_board.copy()
+    def reset(self) -> tf.Tensor:
+        self.board = random.choice(self.sudoku_boards) # choose a random puzzle from the list
+        self.incorrect_moves_count = 0
         return self.board
-
+    
     # Tuple[int, int, int]
-    def step(self, action: Tuple[int, int, int]) -> Tuple[np.ndarray, float, bool]:
+    def step(self, action: Tuple[int, int, int]) -> Tuple[tf.Tensor, float, bool]:
         row, col, num = action
 
         if self.is_valid_move(row, col, num):
-            self.board[row, col] = num
+            indices = tf.convert_to_tensor([[row, col]])
+            updates = tf.convert_to_tensor([num])
+            self.board = tf.tensor_scatter_nd_update(self.board, indices, updates) # Move this inside the if block
             done = self.is_solved()
         else:
-            done = False
+            self.incorrect_moves_count += 1
+            done = self.incorrect_moves_count >= self.max_incorrect_moves
 
         reward = self.get_reward(action)
-        next_state = self.board.copy()
+        next_state = tf.identity(self.board)
         return next_state, reward, done
 
     def render(self):
         print(self.board)
 
     def is_valid_move(self, row: int, col: int, num: int) -> bool:
-        # Check row and column
-        if np.any(self.board[row, :] == num) or np.any(self.board[:, col] == num):
+        row_values = tf.slice(self.board, [row, 0], [1, 9])
+        col_values = tf.slice(self.board, [0, col], [9, 1])
+        
+        if tf.reduce_any(row_values == num) or tf.reduce_any(col_values == num):
             return False
 
-        # Check 3x3 grid
         grid_row, grid_col = row // 3 * 3, col // 3 * 3
-        if np.any(self.board[grid_row:grid_row + 3, grid_col:grid_col + 3] == num):
+        grid = tf.slice(self.board, [grid_row, grid_col], [3, 3])
+        
+        if tf.reduce_any(grid == num):
             return False
 
         return True
@@ -57,7 +66,7 @@ class SudokuEnvironment():
                     
         return True
 
-    def get_available_actions(self, board_state: np.ndarray) -> List[Tuple[int, int, int]]:
+    def get_available_actions(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
         available_actions = []
 
         for row in range(9):
@@ -72,27 +81,18 @@ class SudokuEnvironment():
     def get_reward(self, action: Tuple[int, int, int]) -> float:
         row, col, num = action
         if self.is_valid_move(row, col, num):
-            grid_copy = copy.deepcopy(self.board)
-            grid_copy[row, col] = num
-            row_filled = len(set(grid_copy[row])) == 9
-            col_filled = len(set(grid_copy[:, col])) == 9
-            
+            temp_board = tf.tensor_scatter_nd_update(self.board, [[row, col]], [num])
+
+            row_filled = tf.reduce_all(tf.math.equal(tf.math.reduce_sum(tf.one_hot(temp_board[row], 10), axis=0)[1:], 1))
+            col_filled = tf.reduce_all(tf.math.equal(tf.math.reduce_sum(tf.one_hot(temp_board[:, col], 10), axis=0)[1:], 1))
+
             box_row_start = (row // 3) * 3
             box_col_start = (col // 3) * 3
-            box = [grid_copy[box_row_start + i, box_col_start + j] for i in range(3) for j in range(3)]
-            box_filled = len(set(box)) == 9
-            
-            bonus = (row_filled + col_filled + box_filled) * 2
-            return 1 + bonus
+            box = tf.slice(temp_board, [box_row_start, box_col_start], [3, 3])
+            box_filled = tf.reduce_all(tf.math.equal(tf.math.reduce_sum(tf.one_hot(tf.reshape(box, (-1,)), 10), axis=0)[1:], 1))
+
+            bonus = tf.reduce_sum(tf.stack([row_filled, col_filled, box_filled])) * 2
+
+            return 1 + int(bonus)
         else:
             return -5
-
-    #def get_reward_skeleton(self, action: Tuple[int, int, int]):
-        # action is a tuple of (row, column, number)
-        # return a reward based on the action and the current state of the grid
-        # for example:
-        # if the action is valid and fills an empty cell, return 1
-        # if the action is invalid or overwrites an existing number, return -1
-        # if the action completes the puzzle, return 10
-        # you can adjust these values as you like
-       #return 0.0 # return float
