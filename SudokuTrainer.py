@@ -13,7 +13,7 @@ class SudokuTrainer():
     def evaluate(self, episodes: int):
         pass # return -> float
 
-    def play(self, sudoku_board: np.ndarray):
+    def play(self, sudoku_board: np.ndarray) -> np.ndarray:
         pass # return -> np.ndarray
 
     def save_training_history():

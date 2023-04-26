@@ -3,8 +3,8 @@ import random
 input_file_path = "/home/dev/sudoku/resources/sudoku_large.csv"
 output_file_path = "/home/dev/sudoku/resources/sudoku_hard_very_small.csv"
 
-start_line = 510000
-end_line = 510500
+start_line = 0
+end_line = 5000
 total_lines = end_line - start_line
 
 def insert_zeros(s, num_zeros):
