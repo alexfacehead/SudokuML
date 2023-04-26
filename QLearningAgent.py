@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 from keras.optimizers.schedules.learning_rate_schedule import ExponentialDecay
 from typing import List, Tuple
+from collections import deque
 
 class QLearningAgent():
     def __init__(self, learning_rate: float, discount_factor: float, exploration_rate: float, exploration_decay: float, tpu_strategy: tf.distribute.TPUStrategy, decay_steps: int, max_memory_size: int):
@@ -20,6 +21,8 @@ class QLearningAgent():
         
         with self.tpu_strategy.scope():
             self.model = self.create_q_network()
+            self.target_model = self.create_q_network()
+            self.update_target_q_network()
 
     def make_model(self, conv_layers: int, conv_filters: List[int], dense_layers: int, dense_units: List[int]) -> tf.keras.Model:
         inputs = tf.keras.Input(shape=(9, 9, 1))
@@ -36,7 +39,7 @@ class QLearningAgent():
         outputs = tf.keras.layers.Dense(9 * 9 * 9)(x)
         
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss='mse')
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss='huber')
         
         return model
 
@@ -60,7 +63,19 @@ class QLearningAgent():
         return np.random.choice(available_actions)
 
     def exploit(self, state: np.ndarray, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
-        pass
+        q_values = self.model.predict(state.reshape(1, 9, 9, 1))
+        q_values = q_values.reshape(9, 9, 9)
+        
+        max_q_value = -np.inf
+        best_action = None
+        
+        for action in available_actions:
+            q_value = q_values[action]
+            if q_value > max_q_value:
+                max_q_value = q_value
+                best_action = action
+                
+        return best_action
 
     def remember(self, state: np.ndarray, action: Tuple[int, int, int], reward: float, next_state: np.ndarray, done: bool):
         self.memory.append((state, action, reward, next_state, done))
@@ -77,16 +92,39 @@ class QLearningAgent():
         return batch
 
     def replay(self, batch_size: int):
-        pass
+        batch = self.create_experience_batch(batch_size)
+        
+        states, target_q_values = [], []
+        for state, action, reward, next_state, done in batch:
+            if done:
+                target_q_value = reward
+            else:
+                next_q_values = self.target_model.predict(next_state.reshape(1, 9, 9, 1))
+                target_q_value = reward + self.discount_factor * np.max(next_q_values)
+            
+            current_q_values = self.model.predict(state.reshape(1, 9, 9, 1))
+            current_q_values.reshape(9, 9, 9)[action] = target_q_value
+            
+            states.append(state)
+            target_q_values.append(current_q_values)
+        
+        states = np.array(states)
+        target_q_values = np.array(target_q_values)
+        
+        with self.tpu_strategy.scope():
+            self.model.train_on_batch(states, target_q_values)
 
     def update_target_q_network(self):
-        pass
+        self.target_model.set_weights(self.model.get_weights())
 
     def save_weights(self, file_path: str):
         self.model.save_weights(file_path)
 
     def load_weights(self, file_path: str):
         self.model.load_weights(file_path)
+
+    def set_exploration_rate(self, rate: float):
+        self.exploration_rate = rate
 
     def decay_exploration_rate(self, step: int):
         self.exploration_rate = self.exploration_decay_schedule(step)
