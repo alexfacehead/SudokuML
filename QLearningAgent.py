@@ -141,37 +141,29 @@ class QLearningAgent():
         return tuple(best_action)
 
     def replay(self, batch_size: int) -> None:
-        """Replay a batch of experiences and update the Q-network.
-
-        Args:
-            batch_size: An integer indicating the size of the batch.
-
-        Returns:
-            None
-        """
-        # get the batch tensor of shape (batch_size, 5)
-        batch = self.create_experience_batch(batch_size)
-        # unpack the batch tensor into five tensors of shape (batch_size, ...)
-        state, action, reward, next_state, done = tf.unstack(batch, axis=1)
+        # get the batch tuple of tensors
+        state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.create_experience_batch(batch_size)
 
         # create empty tensors for states and target_q_values
         states = tf.zeros((0, 9, 9, 1))
         target_q_values = tf.zeros((0, 9, 9, 9))
-        
+
         # iterate over the batch size dimension
         for i in range(batch_size):
-            if done[i]:
-                target_q_value = reward[i]
+            if done_batch[i]:
+                target_q_value = reward_batch[i]
             else:
-                next_q_values = self.target_model.predict(tf.reshape(next_state[i], (1, 9, 9, 1)))
-                target_q_value = reward[i] + self.discount_factor * tf.reduce_max(next_q_values)
+                next_q_values = self.target_model.predict(tf.reshape(next_state_batch[i], (1, 9, 9, 1)))
+                next_q_values = tf.reshape(next_q_values, (9, 9, 9)) # reshape the next_q_values tensor
+                target_q_value = reward_batch[i] + self.discount_factor * tf.reduce_max(next_q_values)
 
-            current_q_values = self.model.predict(tf.reshape(state[i], (1, 9, 9, 1)))
+            current_q_values = self.model.predict(tf.reshape(state_batch[i], (1, 9, 9, 1)))
             current_q_values = tf.reshape(current_q_values, (9, 9, 9))
-            current_q_values = tf.tensor_scatter_nd_update(current_q_values, [action[i]], [target_q_value])
+            #current_q_values = tf.tensor_scatter_nd_update(current_q_values, [action_batch[i]], [target_q_value])
 
-            # concatenate the state and current_q_values tensors to the existing ones
-            states = tf.concat([states, tf.reshape(state[i], (1, 9, 9, 1))], axis=0)
+            current_q_values = tf.tensor_scatter_nd_update(current_q_values, tf.reshape(tf.cast(action_batch[i], dtype=tf.int32), (1, 3)), [target_q_value])
+
+            states = tf.concat([states, tf.reshape(state_batch[i], (1, 9, 9, 1))], axis=0)
             target_q_values = tf.concat([target_q_values, tf.reshape(current_q_values[i], (1, 9, 9, 9))], axis=0)
 
         # create a dataset from tensors directly
@@ -200,16 +192,13 @@ class QLearningAgent():
         self.memory.append((state, action, reward, next_state, done))
 
     def create_experience_batch(self, batch_size: int) -> tf.Tensor:
-        """Create a batch of experiences from the replay memory.
+        # create empty tensors of appropriate shapes for each element in the experience tuple
+        state_batch = tf.zeros((0, 9, 9, 1))
+        action_batch = tf.zeros((0, 3), dtype=tf.int32)
+        reward_batch = tf.zeros((0, 1), dtype=tf.float32)
+        next_state_batch = tf.zeros((0, 9, 9, 1))
+        done_batch = tf.zeros((0, 1))
 
-        Args:
-            batch_size: An integer indicating the size of the batch.
-
-        Returns:
-            A tensor of shape (batch_size, 5) representing a batch of experiences.
-        """
-        # create an empty tensor of shape (0, 5)
-        batch = tf.zeros((0, 5))
         if len(self.memory) < batch_size:
             batch_size = len(self.memory)
 
@@ -217,14 +206,27 @@ class QLearningAgent():
         for idx in indices:
             # get the experience tuple from the memory
             experience = self.memory[idx.numpy()]
-            # convert the tuple to a tensor of shape (1, 5)
-            experience_tensor = tf.stack(experience, axis=0)[tf.newaxis, ...]
-            # concatenate the experience tensor to the batch tensor
-            batch = tf.concat([batch, experience_tensor], axis=0)
+            # cast the data to match the tensor type
+            experience = [tf.cast(x, dtype=t.dtype) for x, t in zip(experience, (state_batch, action_batch, reward_batch, next_state_batch, done_batch))]
+            # reshape the tensors and concatenate them along the appropriate axes
+            state_batch = tf.concat([state_batch, tf.reshape(experience[0], (1, 9, 9, 1))], axis=0)
+            action_batch = tf.concat([action_batch, tf.reshape(experience[1], (1, 3))], axis=0)
+            reward_batch = tf.concat([reward_batch, tf.reshape(experience[2], (1, 1))], axis=0)
+            next_state_batch = tf.concat([next_state_batch, tf.reshape(experience[3], (1, 9, 9, 1))], axis=0)
+            done_batch = tf.concat([done_batch, tf.reshape(experience[4], (1, 1))], axis=0)
 
-        return batch
+        # return the batch as a tuple of tensors
+        print("state_batch shape:", state_batch.shape, "dtype:", state_batch.dtype)
+        print("action_batch shape:", action_batch.shape, "dtype:", action_batch.dtype)
+        print("reward_batch shape:", reward_batch.shape, "dtype:", reward_batch.dtype)
+        print("next_state_batch shape:", next_state_batch.shape, "dtype:", next_state_batch.dtype)
+        print("done_batch shape:", done_batch.shape, "dtype:", done_batch.dtype)
 
+        # cast both the action batch and the done batch to float tensors
+        action_batch = tf.cast(action_batch, dtype=tf.float32)
+        done_batch = tf.cast(done_batch, dtype=tf.float32)
 
+        return state_batch, action_batch, reward_batch, next_state_batch, done_batch
 
     def update_target_q_network(self) -> None:
         """Update the target Q-network with the weights from the Q-network.

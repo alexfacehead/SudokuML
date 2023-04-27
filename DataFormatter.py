@@ -1,10 +1,10 @@
 import random
 
-input_file_path = "/home/dev/sudoku/resources/sudoku_large.csv"
-output_file_path = "/home/dev/sudoku/resources/sudoku_hard_very_small.csv"
+input_file_path = "/home/dev/SudokuML/resources/sudoku_very_small.csv"
+output_file_path = "/home/dev/SudokuML/resources/sudoku_mini_easy.csv"
 
 start_line = 0
-end_line = 5000
+end_line = 1000
 total_lines = end_line - start_line
 
 def insert_zeros(s, num_zeros):
@@ -41,13 +41,13 @@ with open(output_file_path, "w") as output_file:
         # Determine the number of zeros to insert based on the current line index
         line_index = i - start_line
         if line_index < total_lines // 4:
-            num_zeros = 24
+            num_zeros = 8
         elif line_index < total_lines // 2:
-            num_zeros = 26
+            num_zeros = 8
         elif line_index < (3 * total_lines) // 4:
-            num_zeros = 30
+            num_zeros = 12
         else:
-            num_zeros = 30
+            num_zeros = 12
         modified_first_value = insert_zeros(second_value[:], num_zeros)
         output_line = modified_first_value + ',' + second_value + '\n'
         output_file.write(output_line)

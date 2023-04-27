@@ -36,7 +36,8 @@ class SudokuTrainer():
         for epoch in range(epochs):
             puzzles = self.data_loader.get_puzzles()
             for sudoku_board in puzzles:
-                state = self.environment.reset(sudoku_board)
+                #state = self.environment.reset(sudoku_board)
+                state = self.environment.reset()
                 self.step = 0
                 episode_reward = 0
 
@@ -80,7 +81,8 @@ class SudokuTrainer():
 
         for i in range(episodes):
             sudoku_board = self.data_loader.get_random_board()
-            state = self.environment.reset(sudoku_board)
+            #state = self.environment.reset(sudoku_board)
+            state = self.environment.reset()
             episode_reward = 0
             done = False
 
@@ -104,7 +106,8 @@ class SudokuTrainer():
         Returns:
             A tensor of shape (9, 9) representing the solved sudoku puzzle or None if no solution is found.
         """
-        state = self.environment.reset(sudoku_board)
+        #state = self.environment.reset(sudoku_board)
+        state = self.environment.reset()
         done = False
 
         while not done:

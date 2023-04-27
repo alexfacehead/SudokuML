@@ -35,7 +35,7 @@ class SudokuEnvironment():
         self.board = self.sudoku_boards[index]
         self.incorrect_moves_count = 0
         return self.board
-    
+
     # Tuple[int, int, int]
     def step(self, action: Tuple[int, int, int]) -> Tuple[tf.Tensor, float, bool]:
         """Take an action and observe the next state and reward.
@@ -106,19 +106,22 @@ class SudokuEnvironment():
             A boolean indicating whether the board is solved or not.
         """
         for row in range(9):
-            if len(set(self.board[row])) != 9:
-                return False
-            
-        for col in range(9):
-            if len(set(self.board[:, col])) != 9:
+            unique_row_count = tf.reduce_sum(tf.cast(tf.math.bincount(self.board[row]) > 0, dtype=tf.int32))
+            if unique_row_count != 9:
                 return False
                 
+        for col in range(9):
+            unique_col_count = tf.reduce_sum(tf.cast(tf.math.bincount(self.board[:, col]) > 0, dtype=tf.int32))
+            if unique_col_count != 9:
+                return False
+                    
         for row in range(0, 9, 3):
             for col in range(0, 9, 3):
                 box = [self.board[row + i, col + j] for i in range(3) for j in range(3)]
-                if len(set(box)) != 9:
+                unique_box_count = tf.reduce_sum(tf.cast(tf.math.bincount(tf.reshape(box, (-1,))) > 0, dtype=tf.int32))
+                if unique_box_count != 9:
                     return False
-                    
+                        
         return True
 
     def get_available_actions(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
