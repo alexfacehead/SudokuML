@@ -4,12 +4,29 @@ import tensorflow as tf
 class SudokuEnvironment():
     # tensor
     def __init__(self, sudoku_boards: List[tf.Tensor], max_incorrect_moves: int=5):
+        """Initialize the sudoku environment with the list of puzzles and the maximum number of incorrect moves.
+
+        Args:
+            sudoku_boards: A list of tensors of shape (9, 9) representing the puzzles with some numbers replaced with zeros.
+            max_incorrect_moves: An integer indicating the maximum number of incorrect moves allowed before terminating the episode.
+
+        Returns:
+            None
+        """
         self.sudoku_boards = sudoku_boards # store the list of puzzles
         self.board = None # initialize the board as None
         self.max_incorrect_moves = max_incorrect_moves
         self.incorrect_moves_count = 0
 
     def reset(self) -> tf.Tensor:
+        """Reset the environment and choose a random puzzle.
+
+        Args:
+            None
+
+        Returns:
+            A tensor of shape (9, 9) representing the chosen puzzle.
+        """
         # convert the list of sudoku boards to a tensor of shape (n, 9, 9)
         self.sudoku_boards = tf.convert_to_tensor(self.sudoku_boards)
         # choose a random index from 0 to n-1
@@ -21,6 +38,19 @@ class SudokuEnvironment():
     
     # Tuple[int, int, int]
     def step(self, action: Tuple[int, int, int]) -> Tuple[tf.Tensor, float, bool]:
+        """Take an action and observe the next state and reward.
+
+        Args:
+            action: A tuple of the form (row, col, num) representing the action to take.
+
+        Returns:
+            A tuple of the form (next_state: tf.Tensor,
+                                reward: float,
+                                done: bool)
+            representing the next board state,
+            the reward for taking the action,
+            and whether the episode is over or not.
+        """
         row, col, num = action
 
         if self.is_valid_move(row, col, num):
@@ -37,9 +67,21 @@ class SudokuEnvironment():
         return next_state, reward, done
 
     def render(self):
+        """Print the board to the standard output.
+        """
         print(self.board)
 
     def is_valid_move(self, row: int, col: int, num: int) -> bool:
+        """Check if a given move is valid or not.
+
+        Args:
+            row: An integer indicating the row index of the move.
+            col: An integer indicating the column index of the move.
+            num: An integer indicating the number to place in the move.
+
+        Returns:
+            A boolean indicating whether the move is valid or not.
+        """
         row_values = tf.slice(self.board, [row, 0], [1, 9])
         col_values = tf.slice(self.board, [0, col], [9, 1])
         
@@ -55,6 +97,14 @@ class SudokuEnvironment():
         return True
 
     def is_solved(self) -> bool:
+        """Check if the board is solved or not.
+
+        Args:
+            None
+
+        Returns:
+            A boolean indicating whether the board is solved or not.
+        """
         for row in range(9):
             if len(set(self.board[row])) != 9:
                 return False
@@ -72,6 +122,14 @@ class SudokuEnvironment():
         return True
 
     def get_available_actions(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
+        """Get the list of available actions for a given board state.
+
+        Args:
+            board_state: A tensor of shape (9, 9) representing the current board state.
+
+        Returns:
+            A list of tuples of the form (row, col, num) representing the possible actions.
+        """
         available_actions = []
 
         for row in range(9):
@@ -84,6 +142,14 @@ class SudokuEnvironment():
         return available_actions
     
     def get_reward(self, action: Tuple[int, int, int]) -> float:
+        """Get the reward for taking a given action.
+
+        Args:
+            action: A tuple of the form (row, col, num) representing the action taken.
+
+        Returns:
+            A float representing the reward received.
+        """
         row, col, num = action
         if self.is_valid_move(row, col, num):
             temp_board = tf.tensor_scatter_nd_update(self.board, [[row, col]], [num])

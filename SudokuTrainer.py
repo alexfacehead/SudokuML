@@ -6,6 +6,15 @@ from typing import List
 
 class SudokuTrainer():
     def __init__(self, agent: QLearningAgent, environment: SudokuEnvironment, data_loader: DataLoader):
+        """A class that implements the training and evaluation logic for the sudoku solver.
+
+        Attributes:
+            agent: A QLearningAgent object that represents the agent that learns to solve sudoku puzzles.
+            environment: A SudokuEnvironment object that represents the environment where the agent interacts.
+            data_loader: A DataLoader object that provides the puzzles and solutions for training and evaluation.
+            step: An integer that counts the number of steps taken by the agent.
+            episode_rewards: A list of integers that stores the total rewards for each episode.
+        """
         self.agent = agent
         self.environment = environment
         self.data_loader = data_loader
@@ -13,10 +22,22 @@ class SudokuTrainer():
         self.episode_rewards = []
 
     def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int) -> List[int]:
+        """Train the agent for a given number of epochs.
+
+        Args:
+            epochs: An integer indicating the number of epochs to train for.
+            allowed_steps: An integer indicating the maximum number of steps allowed in each episode.
+            batch_size: An integer indicating the size of the batch for replaying experiences.
+            target_update_interval: An integer indicating the number of steps before updating the target Q-network.
+
+        Returns:
+            A list of integers representing the total rewards for each episode.
+        """
         for epoch in range(epochs):
             puzzles = self.data_loader.get_puzzles()
             for sudoku_board in puzzles:
                 state = self.environment.reset(sudoku_board)
+                self.step = 0
                 episode_reward = 0
 
                 for _ in range(allowed_steps):
@@ -47,6 +68,14 @@ class SudokuTrainer():
 
 
     def evaluate(self, episodes: int) -> float:
+        """Evaluate the agent on a given number of episodes.
+
+        Args:
+            episodes: An integer indicating the number of episodes to evaluate on.
+
+        Returns:
+            A float representing the average reward per episode.
+        """
         episode_rewards = tf.Variable(tf.zeros([episodes], dtype=tf.float32))
 
         for i in range(episodes):
@@ -67,6 +96,14 @@ class SudokuTrainer():
         return tf.reduce_mean(episode_rewards)
 
     def play(self, sudoku_board: tf.Tensor) -> tf.Tensor:
+        """Play a single sudoku puzzle with the agent.
+
+        Args:
+            sudoku_board: A tensor of shape (9, 9) representing a sudoku puzzle with some numbers replaced with zeros.
+
+        Returns:
+            A tensor of shape (9, 9) representing the solved sudoku puzzle or None if no solution is found.
+        """
         state = self.environment.reset(sudoku_board)
         done = False
 
