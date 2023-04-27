@@ -159,12 +159,11 @@ class QLearningAgent():
 
             current_q_values = self.model.predict(tf.reshape(state_batch[i], (1, 9, 9, 1)))
             current_q_values = tf.reshape(current_q_values, (9, 9, 9))
-            #current_q_values = tf.tensor_scatter_nd_update(current_q_values, [action_batch[i]], [target_q_value])
-
             current_q_values = tf.tensor_scatter_nd_update(current_q_values, tf.reshape(tf.cast(action_batch[i], dtype=tf.int32), (1, 3)), [target_q_value])
-
+            
             states = tf.concat([states, tf.reshape(state_batch[i], (1, 9, 9, 1))], axis=0)
-            target_q_values = tf.concat([target_q_values, tf.reshape(current_q_values[i], (1, 9, 9, 9))], axis=0)
+            #target_q_values = tf.concat([target_q_values, tf.reshape(current_q_values[i], (1, 9, 9, 9))], axis=0)
+            target_q_values = tf.concat([target_q_values, tf.reshape(current_q_values, (1, 9, 9, 9))], axis=0)
 
         # create a dataset from tensors directly
         dataset = tf.data.Dataset.from_tensor_slices((states, target_q_values))
