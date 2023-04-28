@@ -36,7 +36,13 @@ def __main__():
 
     decay_steps = 1000           # Number of steps before applying the exploration rate decay
     max_memory_size = 5000       # Maximum size of the experience replay memory
-    file_path = "/weights"  # File path for saving and loading the Q-Network model
+
+    file_path = "/home/dev/SudokuML/weights"  # File path for saving and loading the Q-Network model
+
+    if os.path.exists('/content/drive'):  # Google Colab environment
+        file_path = '/content/drive/MyDrive/SudokuML/weights'
+    else:  # Local environment
+        file_path = '/home/dev/SudokuML/weights'
 
     data_loader_easy = DataLoader("./resources/sudoku_mini_easy.csv", 8)
 
