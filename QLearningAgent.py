@@ -135,43 +135,57 @@ class QLearningAgent():
         q_values = tf.reshape(q_values, (9, 9, 9))
         mask = tf.zeros((9, 9, 9))
         for action in available_actions:
-            mask = mask + tf.reshape(tf.one_hot(action, 9 * 9 * 9), (9, 9, 9)) # use tf.reshape
+            index = action[0] * 9 * 9 + action[1] * 9 + (action[2] - 1)  # Convert the 3D index to 1D index
+            mask = mask + tf.reshape(tf.one_hot(index, 9 * 9 * 9), (9, 9, 9))
         masked_q_values = q_values * mask
         best_action = tf.unravel_index(tf.argmax(masked_q_values), masked_q_values.shape)
         return tuple(best_action)
 
     def replay(self, batch_size: int) -> None:
-        # get the batch tuple of tensors
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.create_experience_batch(batch_size)
 
-        # create empty tensors for states and target_q_values
-        states = tf.zeros((0, 9, 9, 1))
-        target_q_values = tf.zeros((0, 9, 9, 9))
+        next_q_values = self.target_model.predict(next_state_batch)
+        next_q_values = tf.reshape(next_q_values, (-1, 9, 9, 9))
 
-        # iterate over the batch size dimension
-        for i in range(batch_size):
-            if done_batch[i]:
-                target_q_value = reward_batch[i]
-            else:
-                next_q_values = self.target_model.predict(tf.reshape(next_state_batch[i], (1, 9, 9, 1)))
-                next_q_values = tf.reshape(next_q_values, (9, 9, 9)) # reshape the next_q_values tensor
-                target_q_value = reward_batch[i] + self.discount_factor * tf.reduce_max(next_q_values)
+        current_q_values = self.model.predict(state_batch)
+        current_q_values = tf.reshape(current_q_values, (-1, 9, 9, 9))
 
-            current_q_values = self.model.predict(tf.reshape(state_batch[i], (1, 9, 9, 1)))
-            current_q_values = tf.reshape(current_q_values, (9, 9, 9))
-            current_q_values = tf.tensor_scatter_nd_update(current_q_values, tf.reshape(tf.cast(action_batch[i], dtype=tf.int32), (1, 3)), [target_q_value])
-            
-            states = tf.concat([states, tf.reshape(state_batch[i], (1, 9, 9, 1))], axis=0)
-            #target_q_values = tf.concat([target_q_values, tf.reshape(current_q_values[i], (1, 9, 9, 9))], axis=0)
-            target_q_values = tf.concat([target_q_values, tf.reshape(current_q_values, (1, 9, 9, 9))], axis=0)
+        value_indices = tf.cast(action_batch[:, 2], tf.int32) - 1
+        gather_indices = tf.concat([tf.cast(action_batch[:, :2], tf.int32), tf.expand_dims(value_indices, axis=-1)], axis=-1)
+        next_q_values_selected = tf.gather_nd(next_q_values, gather_indices, batch_dims=1)
 
-        # create a dataset from tensors directly
+        next_q_values_selected = tf.expand_dims(next_q_values_selected, axis=-1)
+
+        next_q_values_selected = tf.reshape(next_q_values_selected, (-1, 1, 1, 1))
+
+        print("reward_batch shape:", reward_batch.shape)
+        print("next_q_values_selected shape:", next_q_values_selected.shape)
+        print("done_batch shape:", done_batch.shape)
+        target_q_values = reward_batch + self.discount_factor * next_q_values_selected * tf.reshape(1 - done_batch, (-1, 1, 1, 1))
+
+        mask = tf.one_hot(tf.cast(action_batch[:, 2], tf.int32), 9)
+        mask = tf.expand_dims(mask, axis=1)
+        mask = tf.expand_dims(mask, axis=1)
+        mask = tf.broadcast_to(mask, tf.shape(current_q_values))
+
+
+        print("current_q_values shape:", current_q_values.shape)
+        print("mask shape:", mask.shape)
+        print("target_q_values shape:", target_q_values.shape)
+        print("action_batch[:, 2] shape:", tf.cast(action_batch[:, 2], tf.int32).shape)
+        print("one_hot shape:", tf.one_hot(tf.cast(action_batch[:, 2], tf.int32), 9).shape)
+        print("mask after first expand_dims:", tf.expand_dims(tf.one_hot(tf.cast(action_batch[:, 2], tf.int32), 9), axis=1).shape)
+        print("mask after second expand_dims:", tf.expand_dims(tf.expand_dims(tf.one_hot(tf.cast(action_batch[:, 2], tf.int32), 9), axis=1), axis=1).shape)
+        print("mask after broadcast_to:", tf.broadcast_to(tf.expand_dims(tf.expand_dims(tf.one_hot(tf.cast(action_batch[:, 2], tf.int32), 9), axis=1), axis=1), tf.shape(current_q_values)).shape)
+        target_q_values = current_q_values * (1 - mask) + target_q_values * mask
+
+        states = state_batch
+        target_q_values = tf.reshape(target_q_values, (-1, 9 * 9 * 9))
+
         dataset = tf.data.Dataset.from_tensor_slices((states, target_q_values))
-        # optionally shuffle and batch the dataset
-        dataset = dataset.shuffle(buffer_size=tf.size(states)).batch(batch_size)
+        dataset = dataset.shuffle(buffer_size=tf.cast(tf.size(states), tf.int64)).batch(batch_size)
 
         with self.tpu_strategy.scope():
-            # iterate over the dataset and train on each batch
             for states_batch, target_q_values_batch in dataset:
                 self.model.train_on_batch(states_batch, target_q_values_batch)
     

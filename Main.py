@@ -21,10 +21,18 @@ def __main__():
     exploration_decay = 0.995    # Exploration rate decay factor
 
     # Initialize the TPU strategy
-    resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='grpc://' + os.environ['COLAB_TPU_ADDR'])
-    tf.config.experimental_connect_to_cluster(resolver)
-    tf.tpu.experimental.initialize_tpu_system(resolver)
-    tpu_strategy = tf.distribute.TPUStrategy(resolver)
+    try:
+        tpu = None
+        if 'COLAB_TPU_ADDR' in os.environ:
+            tpu = 'grpc://' + os.environ['COLAB_TPU_ADDR']
+            resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu)
+            tf.config.experimental_connect_to_cluster(resolver)
+            tf.tpu.experimental.initialize_tpu_system(resolver)
+            strategy = tf.distribute.TPUStrategy(resolver)
+        else:
+            strategy = tf.distribute.OneDeviceStrategy("GPU:0")
+    except ValueError:
+        strategy = tf.distribute.OneDeviceStrategy("CPU:0")
 
     decay_steps = 1000           # Number of steps before applying the exploration rate decay
     max_memory_size = 5000       # Maximum size of the experience replay memory
@@ -34,10 +42,12 @@ def __main__():
 
     easy_puzzles = data_loader_easy.get_puzzles()
 
-    env = SudokuEnvironment(easy_puzzles) # pass the list of puzzles to the environment
-    agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, tpu_strategy, decay_steps, max_memory_size, file_path)
+    with strategy.scope():
+        env = SudokuEnvironment(easy_puzzles) # pass the list of puzzles to the environment
+        agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
 
-    trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
-    trainer_easy.train(10, 100, 1024, 100)
+        trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
+        trainer_easy.train(10, 100, 1024, 100)
 
-__main__()
+if __name__ == "__main__":
+    __main__()

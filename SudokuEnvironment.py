@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import tensorflow as tf
 
 class SudokuEnvironment():
@@ -18,21 +18,25 @@ class SudokuEnvironment():
         self.max_incorrect_moves = max_incorrect_moves
         self.incorrect_moves_count = 0
 
-    def reset(self) -> tf.Tensor:
-        """Reset the environment and choose a random puzzle.
+    def reset(self, sudoku_board: Optional[tf.Tensor] = None) -> tf.Tensor:
+        """Reset the environment and use the provided puzzle or choose a random one if not provided.
 
         Args:
-            None
+            sudoku_board: An optional tensor of shape (9, 9) representing a Sudoku puzzle.
 
         Returns:
             A tensor of shape (9, 9) representing the chosen puzzle.
         """
-        # convert the list of sudoku boards to a tensor of shape (n, 9, 9)
-        self.sudoku_boards = tf.convert_to_tensor(self.sudoku_boards)
-        # choose a random index from 0 to n-1
-        index = tf.random.uniform((), minval=0, maxval=tf.shape(self.sudoku_boards)[0], dtype=tf.int32)
-        # select the board at that index
-        self.board = self.sudoku_boards[index]
+        if sudoku_board is None:
+            # convert the list of sudoku boards to a tensor of shape (n, 9, 9)
+            self.sudoku_boards = tf.convert_to_tensor(self.sudoku_boards)
+            # choose a random index from 0 to n-1
+            index = tf.random.uniform((), minval=0, maxval=tf.shape(self.sudoku_boards)[0], dtype=tf.int32)
+            # select the board at that index
+            self.board = self.sudoku_boards[index]
+        else:
+            self.board = sudoku_board
+
         self.incorrect_moves_count = 0
         return self.board
 

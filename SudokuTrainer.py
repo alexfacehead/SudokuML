@@ -36,8 +36,7 @@ class SudokuTrainer():
         for epoch in range(epochs):
             puzzles = self.data_loader.get_puzzles()
             for sudoku_board in puzzles:
-                #state = self.environment.reset(sudoku_board)
-                state = self.environment.reset()
+                state = self.environment.reset(sudoku_board)  # Pass the sudoku_board to the reset function
                 self.step = 0
                 episode_reward = 0
 
@@ -67,7 +66,6 @@ class SudokuTrainer():
 
         return self.episode_rewards
 
-
     def evaluate(self, episodes: int) -> float:
         """Evaluate the agent on a given number of episodes.
 
@@ -81,7 +79,6 @@ class SudokuTrainer():
 
         for i in range(episodes):
             sudoku_board = self.data_loader.get_random_board()
-            #state = self.environment.reset(sudoku_board)
             state = self.environment.reset()
             episode_reward = 0
             done = False
@@ -96,26 +93,3 @@ class SudokuTrainer():
             episode_rewards[i].assign(episode_reward)
 
         return tf.reduce_mean(episode_rewards)
-
-    def play(self, sudoku_board: tf.Tensor) -> tf.Tensor:
-        """Play a single sudoku puzzle with the agent.
-
-        Args:
-            sudoku_board: A tensor of shape (9, 9) representing a sudoku puzzle with some numbers replaced with zeros.
-
-        Returns:
-            A tensor of shape (9, 9) representing the solved sudoku puzzle or None if no solution is found.
-        """
-        #state = self.environment.reset(sudoku_board)
-        state = self.environment.reset()
-        done = False
-
-        while not done:
-            available_actions = self.environment.get_available_actions(state)
-            if not available_actions:
-                break
-            action = self.agent.choose_action(state, available_actions, train=False)
-            next_state, _, done = self.environment.step(action)
-            state = next_state
-
-        return state
