@@ -44,11 +44,10 @@ class SudokuTrainer():
             puzzle_counter = 0  # Added puzzle counter
             for sudoku_board in puzzles:
                 puzzle_counter += 1  # Increment puzzle counter
-                if puzzle_counter % 5 == 0:
-                    msg2 = "Puzzle # " + str(puzzle_counter) + "\n"  # Print current puzzle number
-                    print(msg2)
-                    with open("debug_output.txt", "a") as f:
-                        f.write(msg2)
+                msg2 = "Puzzle # " + str(puzzle_counter) + "\n"  # Print current puzzle number
+                print(msg2)
+                with open("debug_output.txt", "a") as f:
+                    f.write(msg2)
 
                 state = self.environment.reset(sudoku_board)  # Pass the sudoku_board to the reset function
                 self.current_puzzle_steps = 0
@@ -77,11 +76,10 @@ class SudokuTrainer():
                     exploration_rate = self.agent.exploration_rate
                     if isinstance(exploration_rate, tf.Tensor):
                         exploration_rate = exploration_rate.numpy().item()
-                    if puzzle_counter % 5 == 0:
-                        msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
-                        print(msg3)
-                        with open("debug_output.txt", "a") as f:
-                            f.write(msg3)
+                    msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
+                    print(msg3)
+                    with open("debug_output.txt", "a") as f:
+                        f.write(msg3)
 
                     self.total_steps += 1
                     self.current_puzzle_steps += 1
