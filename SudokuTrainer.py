@@ -34,13 +34,19 @@ class SudokuTrainer():
             A list of integers representing the total rewards for each episode.
         """
         for epoch in range(epochs):
-            print("Epoch # " + str(epoch))
+            msg1 = "Epoch # " + str(epoch)
+            print(msg1)
+            with open("debug_output.txt", "a") as f:
+                f.write(msg1)
 
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0  # Added puzzle counter
             for sudoku_board in puzzles:
                 puzzle_counter += 1  # Increment puzzle counter
-                print("Puzzle # " + str(puzzle_counter))  # Print current puzzle number
+                msg2 = "Puzzle # " + str(puzzle_counter)  # Print current puzzle number
+                print(msg2)
+                with open("debug_output.txt", "a") as f:
+                    f.write(msg2)
 
                 state = self.environment.reset(sudoku_board)  # Pass the sudoku_board to the reset function
                 self.step = 0
@@ -54,10 +60,8 @@ class SudokuTrainer():
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
-                    print("Step # " + str(self.step))
-                    print("Chosen action: " + str(action))
-                    print("Reward: " + str(reward))
-                    print("Episode reward: " + str(episode_reward))
+                    msg3 = "Step # " + str(self.step) + "\n" + "Chosen action: " + str(action) + "\n" + "Reward: " + str(reward) + \
+                    "Episode reward: " + str(episode_reward)
 
                     if done or self.step == allowed_steps - 1:
                         break
@@ -66,7 +70,10 @@ class SudokuTrainer():
 
                     if self.step % target_update_interval == 0:
                         self.agent.update_target_q_network()
-                    print("Exploration rate (epsilon): " + str(self.agent.exploration_rate))
+                    msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(self.agent.exploration_rate)
+                    print(msg3)
+                    with open("debug_output.txt", "a") as f:
+                        f.write(msg3)
 
                     self.agent.decay_exploration_rate(self.step)
 

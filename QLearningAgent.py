@@ -4,6 +4,7 @@ from typing import List, Tuple
 from collections import deque
 import re
 import os
+debug = False
 
 class QLearningAgent():
     def __init__(self, learning_rate: float, discount_factor: float, exploration_rate: \
@@ -142,52 +143,65 @@ class QLearningAgent():
         return tuple(best_action)
 
     def replay(self, batch_size: int) -> None:
-        print("Batch size:", batch_size)
+        msg1 = "Batch size:" + batch_size
+        if debug:
+            print(msg1)
+        else:
+            with open("debug_output.txt", "a") as f:
+                f.write(msg1)
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.create_experience_batch(batch_size)
-        print("state_batch shape:", state_batch.shape)
-        print("action_batch shape:", action_batch.shape)
-        print("reward_batch shape:", reward_batch.shape)
-        print("next_state_batch shape:", next_state_batch.shape)
-        print("done_batch shape:", done_batch.shape)
+        msg2 = "state_batch shape:" + state_batch.shape + "\n" + "state_batch shape:", state_batch.shape + "\n" + \
+        "action_batch shape:", action_batch.shape + "\n" + "reward_batch shape:", reward_batch.shape + "\n" + \
+        "next_state_batch shape:", next_state_batch.shape + "\n" + "done_batch shape:", done_batch.shape
+        if debug:
+            print(msg2)
+        else:
+            with open("debug_output.txt", "a") as f:
+                f.write(msg2)
 
         next_q_values = self.target_model.predict(next_state_batch)
         next_q_values = tf.reshape(next_q_values, (-1, 9, 9, 9))
-        print("next_q_values shape:", next_q_values.shape)
+        msg3 = "next_q_values shape: " + next_q_values.shape + "\n"
 
         current_q_values = self.model.predict(state_batch)
         current_q_values = tf.reshape(current_q_values, (-1, 9, 9, 9))
-        print("current_q_values shape:", current_q_values.shape)
+        msg3 = msg3 + "current_q_values shape: " + current_q_values.shape + "\n"
 
         value_indices = tf.cast(action_batch[:, 2], tf.int32) - 1
         gather_indices = tf.concat([tf.cast(action_batch[:, :2], tf.int32), tf.expand_dims(value_indices, axis=-1)], axis=-1)
         next_q_values_selected = tf.gather_nd(next_q_values, gather_indices, batch_dims=1)
-        print("next_q_values_selected shape:", next_q_values_selected.shape)
+        msg3 = msg3 + "next_q_values_selected shape: " + next_q_values_selected.shape + "\n"
 
         next_q_values_selected = tf.expand_dims(next_q_values_selected, axis=-1)
 
         target_q_values = reward_batch + self.discount_factor * next_q_values_selected * (1 - done_batch)
-        print("target_q_values shape (before squeezing):", target_q_values.shape)
+        msg3 = msg3 + "target_q_values shape (before squeezing):" + target_q_values.shape + "\n"
 
         target_q_values = tf.squeeze(target_q_values, axis=-1)
-        print("target_q_values shape (after squeezing):", target_q_values.shape)
+        msg3 = msg3 + "target_q_values shape (after squeezing): " + target_q_values.shape + "\n"
 
         target_q_values = tf.expand_dims(target_q_values, axis=-1)
         target_q_values = tf.expand_dims(target_q_values, axis=-1)
         target_q_values = tf.expand_dims(target_q_values, axis=-1)
-        print("target_q_values shape (after expanding dimensions):", target_q_values.shape)
+        msg3 = msg3 + "target_q_values shape (after expanding dimensions): " + target_q_values.shape + "\n"
 
         mask = tf.one_hot(tf.cast(action_batch[:, 2], tf.int32), 9)
         mask = tf.expand_dims(mask, axis=1)
         mask = tf.expand_dims(mask, axis=1)
         mask = tf.broadcast_to(mask, tf.shape(current_q_values))
-        print("mask shape:", mask.shape)
+        msg3 = msg3 + "mask shape: " + mask.shape + "\n"
 
         target_q_values = current_q_values * (1 - mask) + target_q_values * mask
-        print("target_q_values shape (after applying mask):", target_q_values.shape)
+        msg3 = msg3 + "target_q_values shape (after applying mask): " + target_q_values.shape + "\n"
 
         states = state_batch
         target_q_values = tf.reshape(target_q_values, (-1, 9 * 9 * 9))
-        print("target_q_values shape (after reshaping):", target_q_values.shape)
+        msg3 = msg3 + "target_q_values shape (after reshaping):", target_q_values.shape + "\n"
+        if debug:
+            print(msg3)
+        else:
+            with open("debug_output.txt", "a") as f:
+                f.write(msg3)
 
         dataset = tf.data.Dataset.from_tensor_slices((states, target_q_values))
         dataset = dataset.shuffle(buffer_size=tf.cast(tf.size(states), tf.int64)).batch(batch_size)
@@ -210,13 +224,13 @@ class QLearningAgent():
             None
         """
         self.memory.append((state, action, reward, next_state, done))
-        print("Remembering experience:")
-        print("State:", state)
-        print("Action:", action)
-        print("Reward:", reward)
-        print("Next state:", next_state)
-        print("Done:", done)
-        print("Memory size:", len(self.memory))
+        msg = "Remembering experience:\n" + "State:", state, "Action:", action, "Reward:", reward, \
+        "Next state:", next_state, "Done:", done, "Memory size:", len(self.memory)
+        if debug:
+            print("\n" + str(msg))
+        else:
+            with open("debug_output.txt", "a") as f:
+                f.write("\n" + str(msg))
 
     def create_experience_batch(self, batch_size: int) -> tf.Tensor:
         # create empty tensors of appropriate shapes for each element in the experience tuple
