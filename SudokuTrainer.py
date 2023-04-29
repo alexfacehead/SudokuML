@@ -34,7 +34,7 @@ class SudokuTrainer():
             A list of integers representing the total rewards for each episode.
         """
         for epoch in range(epochs):
-            msg1 = "Epoch # " + str(epoch)
+            msg1 = "Epoch # " + str(epoch) + "\n"
             print(msg1)
             with open("debug_output.txt", "a") as f:
                 f.write(msg1)
@@ -60,8 +60,7 @@ class SudokuTrainer():
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
-                    msg3 = "Step # " + str(self.step) + "\n" + "Chosen action: " + str(action) + "\n" + "Reward: " + str(reward) + \
-                    "Episode reward: " + str(episode_reward)
+                    msg3 = f"Step # {self.step}\nChosen action: {QLearningAgent.format_action_tuple(action)}\nReward: {reward}\nEpisode reward: {episode_reward}\n"
 
                     if done or self.step == allowed_steps - 1:
                         break

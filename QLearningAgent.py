@@ -143,60 +143,63 @@ class QLearningAgent():
         return tuple(best_action)
 
     def replay(self, batch_size: int) -> None:
-        msg1 = "Batch size:" + batch_size
+        msg1 = "Batch size: " + str(batch_size)
         if debug:
             print(msg1)
         else:
             with open("debug_output.txt", "a") as f:
-                f.write(msg1)
+                f.write(msg1 + "\n")
+
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.create_experience_batch(batch_size)
-        msg2 = "state_batch shape:" + state_batch.shape + "\n" + "state_batch shape:", state_batch.shape + "\n" + \
-        "action_batch shape:", action_batch.shape + "\n" + "reward_batch shape:", reward_batch.shape + "\n" + \
-        "next_state_batch shape:", next_state_batch.shape + "\n" + "done_batch shape:", done_batch.shape
+        msg2 = "state_batch shape: " + str(state_batch.shape) + "\n" + \
+            "action_batch shape: " + str(action_batch.shape) + "\n" + \
+            "reward_batch shape: " + str(reward_batch.shape) + "\n" + \
+            "next_state_batch shape: " + str(next_state_batch.shape) + "\n" + \
+            "done_batch shape: " + str(done_batch.shape)
         if debug:
             print(msg2)
         else:
             with open("debug_output.txt", "a") as f:
-                f.write(msg2)
+                f.write(msg2 + "\n")
 
         next_q_values = self.target_model.predict(next_state_batch)
         next_q_values = tf.reshape(next_q_values, (-1, 9, 9, 9))
-        msg3 = "next_q_values shape: " + next_q_values.shape + "\n"
+        msg3 = "next_q_values shape: " + str(next_q_values.shape) + "\n"
 
         current_q_values = self.model.predict(state_batch)
         current_q_values = tf.reshape(current_q_values, (-1, 9, 9, 9))
-        msg3 = msg3 + "current_q_values shape: " + current_q_values.shape + "\n"
+        msg3 = msg3 + "current_q_values shape: " + str(current_q_values.shape) + "\n"
 
         value_indices = tf.cast(action_batch[:, 2], tf.int32) - 1
         gather_indices = tf.concat([tf.cast(action_batch[:, :2], tf.int32), tf.expand_dims(value_indices, axis=-1)], axis=-1)
         next_q_values_selected = tf.gather_nd(next_q_values, gather_indices, batch_dims=1)
-        msg3 = msg3 + "next_q_values_selected shape: " + next_q_values_selected.shape + "\n"
+        msg3 = msg3 + "next_q_values_selected shape: " + str(next_q_values_selected.shape) + "\n"
 
         next_q_values_selected = tf.expand_dims(next_q_values_selected, axis=-1)
 
         target_q_values = reward_batch + self.discount_factor * next_q_values_selected * (1 - done_batch)
-        msg3 = msg3 + "target_q_values shape (before squeezing):" + target_q_values.shape + "\n"
+        msg3 = msg3 + "target_q_values shape (before squeezing): " + str(target_q_values.shape) + "\n"
 
         target_q_values = tf.squeeze(target_q_values, axis=-1)
-        msg3 = msg3 + "target_q_values shape (after squeezing): " + target_q_values.shape + "\n"
+        msg3 = msg3 + "target_q_values shape (after squeezing): " + str(target_q_values.shape) + "\n"
 
         target_q_values = tf.expand_dims(target_q_values, axis=-1)
         target_q_values = tf.expand_dims(target_q_values, axis=-1)
         target_q_values = tf.expand_dims(target_q_values, axis=-1)
-        msg3 = msg3 + "target_q_values shape (after expanding dimensions): " + target_q_values.shape + "\n"
+        msg3 = msg3 + "target_q_values shape (after expanding dimensions): " + str(target_q_values.shape) + "\n"
 
         mask = tf.one_hot(tf.cast(action_batch[:, 2], tf.int32), 9)
         mask = tf.expand_dims(mask, axis=1)
         mask = tf.expand_dims(mask, axis=1)
         mask = tf.broadcast_to(mask, tf.shape(current_q_values))
-        msg3 = msg3 + "mask shape: " + mask.shape + "\n"
+        msg3 = msg3 + "mask shape: " + str(mask.shape) + "\n"
 
         target_q_values = current_q_values * (1 - mask) + target_q_values * mask
-        msg3 = msg3 + "target_q_values shape (after applying mask): " + target_q_values.shape + "\n"
+        msg3 = msg3 + "target_q_values shape (after applying mask): " + str(target_q_values.shape) + "\n"
 
         states = state_batch
         target_q_values = tf.reshape(target_q_values, (-1, 9 * 9 * 9))
-        msg3 = msg3 + "target_q_values shape (after reshaping):", target_q_values.shape + "\n"
+        msg3 = msg3 + "target_q_values shape (after reshaping): " + str(target_q_values.shape) + "\n"
         if debug:
             print(msg3)
         else:
@@ -224,8 +227,8 @@ class QLearningAgent():
             None
         """
         self.memory.append((state, action, reward, next_state, done))
-        msg = "Remembering experience:\n" + "State:", state, "Action:", action, "Reward:", reward, \
-        "Next state:", next_state, "Done:", done, "Memory size:", len(self.memory)
+
+        msg = f"Remembering experience:\nState: {state}\nAction: {format_action_tuple(action)}\nReward: {reward}\nNext state: {next_state}\nDone: {done}\nMemory size: {len(self.memory)}\nBatch size: {batch_size}"
         if debug:
             print("\n" + str(msg))
         else:
@@ -360,3 +363,6 @@ class QLearningAgent():
             None
         """
         self.exploration_rate = self.exploration_decay_schedule(step)
+
+def format_action_tuple(action_tuple):
+    return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"
