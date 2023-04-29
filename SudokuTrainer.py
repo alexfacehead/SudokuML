@@ -18,8 +18,9 @@ class SudokuTrainer():
         self.agent = agent
         self.environment = environment
         self.data_loader = data_loader
-        self.step = 0
         self.episode_rewards = []
+        self.total_steps = 0
+        self.current_puzzle_steps = 0
 
     def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int) -> List[int]:
         """Train the agent for a given number of epochs.
@@ -43,41 +44,47 @@ class SudokuTrainer():
             puzzle_counter = 0  # Added puzzle counter
             for sudoku_board in puzzles:
                 puzzle_counter += 1  # Increment puzzle counter
-                msg2 = "Puzzle # " + str(puzzle_counter)  # Print current puzzle number
-                print(msg2)
-                with open("debug_output.txt", "a") as f:
-                    f.write(msg2)
+                if puzzle_counter % 5 == 0:
+                    msg2 = "Puzzle # " + str(puzzle_counter) + "\n"  # Print current puzzle number
+                    print(msg2)
+                    with open("debug_output.txt", "a") as f:
+                        f.write(msg2)
 
                 state = self.environment.reset(sudoku_board)  # Pass the sudoku_board to the reset function
-                self.step = 0
+                self.current_puzzle_steps = 0
                 episode_reward = 0
 
                 for _ in range(allowed_steps):
-                    
+                    self.agent.decay_exploration_rate(self.total_steps)
                     available_actions = self.environment.get_available_actions(state)
                     action = self.agent.choose_action(state, available_actions)
                     next_state, reward, done = self.environment.step(action)
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
-                    msg3 = "Step # " + str(self.step) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
+                    msg3 = "Running total step #" + str(self.total_steps) + "\n"
+                    msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
 
-                    if done or self.step == allowed_steps - 1:
+                    if done or self.current_puzzle_steps == allowed_steps - 1:
                         break
 
                     self.agent.replay(batch_size)
 
-                    if self.step % target_update_interval == 0:
+                    if self.total_steps % target_update_interval == 0:
                         self.agent.update_target_q_network()
-                    msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(self.agent.exploration_rate)
-                    print(msg3)
-                    with open("debug_output.txt", "a") as f:
-                        f.write(msg3)
 
-                    self.agent.decay_exploration_rate(self.step)
+                    exploration_rate = self.agent.exploration_rate
+                    if isinstance(exploration_rate, tf.Tensor):
+                        exploration_rate = exploration_rate.numpy().item()
+                    if puzzle_counter % 5 == 0:
+                        msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
+                        print(msg3)
+                        with open("debug_output.txt", "a") as f:
+                            f.write(msg3)
 
-                    self.step += 1
+                    self.total_steps += 1
+                    self.current_puzzle_steps += 1
 
                 self.episode_rewards.append(episode_reward)
             

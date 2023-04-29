@@ -32,6 +32,10 @@ class QLearningAgent():
         self.memory = deque(maxlen=max_memory_size)
         self.file_path = file_path
 
+        # Debug counters
+        self.replay_count = 0
+        self.remember_count = 0
+
         self.exploration_decay_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=self.exploration_rate,
             decay_steps=decay_steps,
@@ -143,24 +147,24 @@ class QLearningAgent():
         return tuple(best_action)
 
     def replay(self, batch_size: int) -> None:
-        msg1 = "Batch size: " + str(batch_size)
-        if debug:
-            print(msg1)
-        else:
-            with open("debug_output.txt", "a") as f:
-                f.write(msg1 + "\n")
-
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.create_experience_batch(batch_size)
-        msg2 = "state_batch shape: " + str(state_batch.shape) + "\n" + \
-            "action_batch shape: " + str(action_batch.shape) + "\n" + \
-            "reward_batch shape: " + str(reward_batch.shape) + "\n" + \
-            "next_state_batch shape: " + str(next_state_batch.shape) + "\n" + \
-            "done_batch shape: " + str(done_batch.shape)
-        if debug:
-            print(msg2)
-        else:
-            with open("debug_output.txt", "a") as f:
-                f.write(msg2 + "\n")
+        if (self.replay_count % 50 == 0):
+            msg1 = "Batch size: " + str(batch_size)
+            if debug:
+                print(msg1)
+            else:
+                with open("debug_output.txt", "a") as f:
+                    f.write(msg1 + "\n")
+            msg2 = "state_batch shape: " + str(state_batch.shape) + "\n" + \
+                "action_batch shape: " + str(action_batch.shape) + "\n" + \
+                "reward_batch shape: " + str(reward_batch.shape) + "\n" + \
+                "next_state_batch shape: " + str(next_state_batch.shape) + "\n" + \
+                "done_batch shape: " + str(done_batch.shape)
+            if debug:
+                print(msg2)
+            else:
+                with open("debug_output.txt", "a") as f:
+                    f.write(msg2 + "\n")
 
         next_q_values = self.target_model.predict(next_state_batch)
         next_q_values = tf.reshape(next_q_values, (-1, 9, 9, 9))
@@ -199,12 +203,15 @@ class QLearningAgent():
 
         states = state_batch
         target_q_values = tf.reshape(target_q_values, (-1, 9 * 9 * 9))
+    
         msg3 = msg3 + "target_q_values shape (after reshaping): " + str(target_q_values.shape) + "\n"
-        if debug:
-            print(msg3)
-        else:
-            with open("debug_output.txt", "a") as f:
-                f.write(msg3)
+        if (self.replay_count % 50 == 0):
+            if debug:
+                print(msg3)
+            else:
+                with open("debug_output.txt", "a") as f:
+                    f.write(msg3)
+        self.replay_count = self.replay_count + 1
 
         dataset = tf.data.Dataset.from_tensor_slices((states, target_q_values))
         dataset = dataset.shuffle(buffer_size=tf.cast(tf.size(states), tf.int64)).batch(batch_size)
@@ -236,11 +243,13 @@ class QLearningAgent():
         Done: {}
         Memory size: {}
         """.format(state, format_action_tuple(action), reward, next_state, done, len(self.memory))
-        if debug:
-            print("\n" + str(msg))
-        else:
-            with open("debug_output.txt", "a") as f:
-                f.write("\n" + str(msg))
+        if self.remember_count % 50 == 0:
+            if debug:
+                print("\n" + str(msg))
+            else:
+                with open("debug_output.txt", "a") as f:
+                    f.write("\n" + str(msg))
+        self.remember_count = self.remember_count + 1
 
     def create_experience_batch(self, batch_size: int) -> tf.Tensor:
         # create empty tensors of appropriate shapes for each element in the experience tuple
@@ -265,13 +274,6 @@ class QLearningAgent():
             reward_batch = tf.concat([reward_batch, tf.reshape(experience[2], (1, 1))], axis=0)
             next_state_batch = tf.concat([next_state_batch, tf.reshape(experience[3], (1, 9, 9, 1))], axis=0)
             done_batch = tf.concat([done_batch, tf.reshape(experience[4], (1, 1))], axis=0)
-
-        # return the batch as a tuple of tensors
-        #print("state_batch shape:", state_batch.shape, "dtype:", state_batch.dtype)
-        #print("action_batch shape:", action_batch.shape, "dtype:", action_batch.dtype)
-        #print("reward_batch shape:", reward_batch.shape, "dtype:", reward_batch.dtype)
-        #print("next_state_batch shape:", next_state_batch.shape, "dtype:", next_state_batch.dtype)
-        #print("done_batch shape:", done_batch.shape, "dtype:", done_batch.dtype)
 
         # cast both the action batch and the done batch to float tensors
         action_batch = tf.cast(action_batch, dtype=tf.float32)

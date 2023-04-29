@@ -6,6 +6,7 @@ from QLearningAgent import QLearningAgent
 from SudokuEnvironment import SudokuEnvironment
 from DataLoader import DataLoader
 from DataLoader import DataLoader
+import argparse
 
 def __main__():
     """Run the main program.
@@ -16,6 +17,14 @@ def __main__():
     Returns:
         None
     """
+    # Argparse stuff
+    parser = argparse.ArgumentParser(description="Sudoku reinforcement learning")
+    parser.add_argument("--fresh", action="store_true", help="Delete debug_output.txt if it exists")
+    args = parser.parse_args()
+
+    if args.fresh and os.path.exists("debug_output.txt"):
+        os.remove("debug_output.txt")
+
     learning_rate = 0.1          # The learning rate for the Q-Learning algorithm
     discount_factor = 0.99       # The discount factor for future rewards
     exploration_rate = 1.0       # Initial exploration rate (epsilon) for the epsilon-greedy strategy
@@ -35,7 +44,7 @@ def __main__():
     except ValueError:
         strategy = tf.distribute.OneDeviceStrategy("CPU:0")
 
-    decay_steps = 1000           # Number of steps before applying the exploration rate decay
+    decay_steps = 50           # Number of steps before applying the exploration rate decay
     max_memory_size = 5000       # Maximum size of the experience replay memory
 
     file_path = "/home/dev/SudokuML/weights"  # File path for saving and loading the Q-Network model
@@ -50,9 +59,8 @@ def __main__():
     easy_puzzles = data_loader_easy.get_puzzles()
 
     with strategy.scope():
-        env = SudokuEnvironment(easy_puzzles) # pass the list of puzzles to the environment
+        env = SudokuEnvironment(easy_puzzles, max_incorrect_moves=10) # pass the list of puzzles to the environment
         agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
-
         trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
 
         epochs = 10

@@ -1,26 +1,26 @@
 Epoch # 0
-Puzzle # 1
+
 Remembering experience:
-        State: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 0 7 6 1]
- [9 7 1 2 6 5 0 4 3]
+        State: [[0 0 4 3 7 1 2 5 9]
+ [3 2 5 8 0 9 7 6 1]
+ [9 0 1 2 6 5 0 4 3]
  [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 0 0]
- [2 5 7 4 8 3 0 1 6]
+ [1 9 8 6 5 7 0 3 2]
+ [0 5 7 4 8 3 9 1 6]
  [6 8 9 7 3 4 1 2 5]
- [0 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Action: (5, 6, 9)
+ [7 1 3 5 2 8 6 9 4]
+ [5 4 2 9 1 6 0 7 8]]
+        Action: (0, 1, 6)
         Reward: -5
-        Next state: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 0 7 6 1]
- [9 7 1 2 6 5 0 4 3]
+        Next state: [[0 6 4 3 7 1 2 5 9]
+ [3 2 5 8 0 9 7 6 1]
+ [9 0 1 2 6 5 0 4 3]
  [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 0 0]
- [2 5 7 4 8 3 9 1 6]
+ [1 9 8 6 5 7 0 3 2]
+ [0 5 7 4 8 3 9 1 6]
  [6 8 9 7 3 4 1 2 5]
- [0 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
+ [7 1 3 5 2 8 6 9 4]
+ [5 4 2 9 1 6 0 7 8]]
         Done: False
         Memory size: 1
         Batch size: 20
@@ -38,497 +38,182 @@ target_q_values shape (after expanding dimensions): (1, 1, 1, 1)
 mask shape: (1, 9, 9, 9)
 target_q_values shape (after applying mask): (1, 9, 9, 9)
 target_q_values shape (after reshaping): (1, 729)
-Step # 0
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=5>, <tf.Tensor: shape=(), dtype=int32, numpy=6>, <tf.Tensor: shape=(), dtype=int32, numpy=9>)
+Puzzle # 5
+Running total step #17
+Puzzle step # 0
+Chosen action: (3, 3, 6)
 Reward: -5
 Episode reward: -5
 
 Exploration rate (epsilon): 1.0
-Remembering experience:
-        State: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 0 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 0 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [0 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Action: (7, 0, 7)
-        Reward: -5
-        Next state: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 0 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 0 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [7 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Done: False
-        Memory size: 2
-        Batch size: 20
-state_batch shape: (2, 9, 9, 1)
-action_batch shape: (2, 3)
-reward_batch shape: (2, 1)
-next_state_batch shape: (2, 9, 9, 1)
-done_batch shape: (2, 1)
-next_q_values shape: (2, 9, 9, 9)
-current_q_values shape: (2, 9, 9, 9)
-next_q_values_selected shape: (2,)
-target_q_values shape (before squeezing): (2, 1)
-target_q_values shape (after squeezing): (2,)
-target_q_values shape (after expanding dimensions): (2, 1, 1, 1)
-mask shape: (2, 9, 9, 9)
-target_q_values shape (after applying mask): (2, 9, 9, 9)
-target_q_values shape (after reshaping): (2, 729)
-Step # 1
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=7>, <tf.Tensor: shape=(), dtype=int32, numpy=0>, <tf.Tensor: shape=(), dtype=int32, numpy=7>)
+Running total step #18
+Puzzle step # 0
+Chosen action: (5, 7, 5)
 Reward: -5
 Episode reward: -10
 
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 0 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 0 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [7 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Action: (1, 5, 9)
-        Reward: -5
-        Next state: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 9 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 0 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [7 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Done: False
-        Memory size: 3
-        Batch size: 20
-state_batch shape: (3, 9, 9, 1)
-action_batch shape: (3, 3)
-reward_batch shape: (3, 1)
-next_state_batch shape: (3, 9, 9, 1)
-done_batch shape: (3, 1)
-next_q_values shape: (3, 9, 9, 9)
-current_q_values shape: (3, 9, 9, 9)
-next_q_values_selected shape: (3,)
-target_q_values shape (before squeezing): (3, 1)
-target_q_values shape (after squeezing): (3,)
-target_q_values shape (after expanding dimensions): (3, 1, 1, 1)
-mask shape: (3, 9, 9, 9)
-target_q_values shape (after applying mask): (3, 9, 9, 9)
-target_q_values shape (after reshaping): (3, 729)
-Step # 2
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=1>, <tf.Tensor: shape=(), dtype=int32, numpy=5>, <tf.Tensor: shape=(), dtype=int32, numpy=9>)
+Exploration rate (epsilon): 1.0
+Running total step #19
+Puzzle step # 0
+Chosen action: (7, 1, 4)
 Reward: -5
 Episode reward: -15
 
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 9 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 0 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [7 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Action: (4, 7, 3)
-        Reward: -5
-        Next state: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 9 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 3 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [7 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Done: False
-        Memory size: 4
-        Batch size: 20
-state_batch shape: (4, 9, 9, 1)
-action_batch shape: (4, 3)
-reward_batch shape: (4, 1)
-next_state_batch shape: (4, 9, 9, 1)
-done_batch shape: (4, 1)
-next_q_values shape: (4, 9, 9, 9)
-current_q_values shape: (4, 9, 9, 9)
-next_q_values_selected shape: (4,)
-target_q_values shape (before squeezing): (4, 1)
-target_q_values shape (after squeezing): (4,)
-target_q_values shape (after expanding dimensions): (4, 1, 1, 1)
-mask shape: (4, 9, 9, 9)
-target_q_values shape (after applying mask): (4, 9, 9, 9)
-target_q_values shape (after reshaping): (4, 729)
-Step # 3
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=4>, <tf.Tensor: shape=(), dtype=int32, numpy=7>, <tf.Tensor: shape=(), dtype=int32, numpy=3>)
+Exploration rate (epsilon): 1.0
+Running total step #20
+Puzzle step # 0
+Chosen action: (6, 5, 4)
 Reward: -5
 Episode reward: -20
 
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
+Exploration rate (epsilon): 1.0
+Running total step #21
+Puzzle step # 0
+Chosen action: (5, 8, 4)
+Reward: -5
+Episode reward: -25
+
+Exploration rate (epsilon): 1.0
+
 Remembering experience:
-        State: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 9 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 3 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [7 1 3 5 2 8 6 9 0]
- [0 4 2 9 1 6 3 7 8]]
-        Action: (7, 8, 4)
+        State: [[5 3 6 0 7 2 1 9 8]
+ [2 1 9 3 8 6 7 5 4]
+ [8 4 7 1 9 5 6 2 3]
+ [4 7 2 6 3 8 5 1 9]
+ [9 5 1 2 4 7 3 8 6]
+ [6 0 8 5 1 9 4 7 2]
+ [7 9 5 8 6 4 2 3 1]
+ [3 0 4 9 0 1 8 6 7]
+ [1 8 0 7 2 3 9 4 5]]
+        Action: (0, 3, 4)
         Reward: -5
-        Next state: [[8 6 4 3 7 1 2 5 9]
- [3 2 5 8 4 9 7 6 1]
- [9 7 1 2 6 5 0 4 3]
- [4 3 6 1 9 2 5 8 7]
- [1 9 8 6 5 7 4 3 0]
- [2 5 7 4 8 3 9 1 6]
- [6 8 9 7 3 4 1 2 5]
- [7 1 3 5 2 8 6 9 4]
- [0 4 2 9 1 6 3 7 8]]
-        Done: True
-        Memory size: 5
-        Puzzle # 2
-Remembering experience:
-        State: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 0 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 0 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 0 4 3]
- [6 3 1 4 0 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
-        Action: (1, 6, 9)
-        Reward: -5
-        Next state: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 9 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 0 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 0 4 3]
- [6 3 1 4 0 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
+        Next state: [[5 3 6 4 7 2 1 9 8]
+ [2 1 9 3 8 6 7 5 4]
+ [8 4 7 1 9 5 6 2 3]
+ [4 7 2 6 3 8 5 1 9]
+ [9 5 1 2 4 7 3 8 6]
+ [6 0 8 5 1 9 4 7 2]
+ [7 9 5 8 6 4 2 3 1]
+ [3 0 4 9 0 1 8 6 7]
+ [1 8 0 7 2 3 9 4 5]]
         Done: False
-        Memory size: 6
-        Batch size: 20
-state_batch shape: (6, 9, 9, 1)
-action_batch shape: (6, 3)
-reward_batch shape: (6, 1)
-next_state_batch shape: (6, 9, 9, 1)
-done_batch shape: (6, 1)
-next_q_values shape: (6, 9, 9, 9)
-current_q_values shape: (6, 9, 9, 9)
-next_q_values_selected shape: (6,)
-target_q_values shape (before squeezing): (6, 1)
-target_q_values shape (after squeezing): (6,)
-target_q_values shape (after expanding dimensions): (6, 1, 1, 1)
-mask shape: (6, 9, 9, 9)
-target_q_values shape (after applying mask): (6, 9, 9, 9)
-target_q_values shape (after reshaping): (6, 729)
-Step # 0
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=1>, <tf.Tensor: shape=(), dtype=int32, numpy=6>, <tf.Tensor: shape=(), dtype=int32, numpy=9>)
+        Memory size: 51
+        Puzzle # 10
+Running total step #43
+Puzzle step # 0
+Chosen action: (3, 4, 5)
 Reward: -5
 Episode reward: -5
 
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 9 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 0 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 0 4 3]
- [6 3 1 4 0 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
-        Action: (7, 4, 8)
-        Reward: -5
-        Next state: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 9 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 0 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 0 4 3]
- [6 3 1 4 8 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
-        Done: False
-        Memory size: 7
-        Batch size: 20
-state_batch shape: (7, 9, 9, 1)
-action_batch shape: (7, 3)
-reward_batch shape: (7, 1)
-next_state_batch shape: (7, 9, 9, 1)
-done_batch shape: (7, 1)
-next_q_values shape: (7, 9, 9, 9)
-current_q_values shape: (7, 9, 9, 9)
-next_q_values_selected shape: (7,)
-target_q_values shape (before squeezing): (7, 1)
-target_q_values shape (after squeezing): (7,)
-target_q_values shape (after expanding dimensions): (7, 1, 1, 1)
-mask shape: (7, 9, 9, 9)
-target_q_values shape (after applying mask): (7, 9, 9, 9)
-target_q_values shape (after reshaping): (7, 729)
-Step # 1
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=7>, <tf.Tensor: shape=(), dtype=int32, numpy=4>, <tf.Tensor: shape=(), dtype=int32, numpy=8>)
+Exploration rate (epsilon): 1.0
+Running total step #44
+Puzzle step # 0
+Chosen action: (7, 1, 3)
 Reward: -5
 Episode reward: -10
 
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 9 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 0 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 0 4 3]
- [6 3 1 4 8 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
-        Action: (5, 1, 1)
-        Reward: -5
-        Next state: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 9 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 1 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 0 4 3]
- [6 3 1 4 8 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
-        Done: False
-        Memory size: 8
-        Batch size: 20
-state_batch shape: (8, 9, 9, 1)
-action_batch shape: (8, 3)
-reward_batch shape: (8, 1)
-next_state_batch shape: (8, 9, 9, 1)
-done_batch shape: (8, 1)
-next_q_values shape: (8, 9, 9, 9)
-current_q_values shape: (8, 9, 9, 9)
-next_q_values_selected shape: (8,)
-target_q_values shape (before squeezing): (8, 1)
-target_q_values shape (after squeezing): (8,)
-target_q_values shape (after expanding dimensions): (8, 1, 1, 1)
-mask shape: (8, 9, 9, 9)
-target_q_values shape (after applying mask): (8, 9, 9, 9)
-target_q_values shape (after reshaping): (8, 729)
-Step # 2
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=5>, <tf.Tensor: shape=(), dtype=int32, numpy=1>, <tf.Tensor: shape=(), dtype=int32, numpy=1>)
+Exploration rate (epsilon): 1.0
+Running total step #45
+Puzzle step # 0
+Chosen action: (6, 7, 5)
 Reward: -5
 Episode reward: -15
 
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 9 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 1 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 0 4 3]
- [6 3 1 4 8 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
-        Action: (6, 6, 5)
-        Reward: -5
-        Next state: [[3 4 6 1 7 9 2 0 8]
- [1 8 7 5 2 3 9 6 4]
- [5 2 9 0 4 8 3 7 1]
- [9 6 5 8 3 2 4 1 7]
- [4 0 2 9 1 6 8 3 5]
- [8 1 3 7 5 4 6 2 9]
- [0 9 8 2 6 1 5 4 3]
- [6 3 1 4 8 5 7 9 2]
- [2 5 4 3 9 7 1 8 6]]
-        Done: True
-        Memory size: 9
-        Puzzle # 3
-Remembering experience:
-        State: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 0 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 0]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [0 8 9 7 1 5 0 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Action: (7, 6, 2)
-        Reward: -5
-        Next state: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 0 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 0]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [0 8 9 7 1 5 2 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Done: False
-        Memory size: 10
-        Batch size: 20
-state_batch shape: (10, 9, 9, 1)
-action_batch shape: (10, 3)
-reward_batch shape: (10, 1)
-next_state_batch shape: (10, 9, 9, 1)
-done_batch shape: (10, 1)
-next_q_values shape: (10, 9, 9, 9)
-current_q_values shape: (10, 9, 9, 9)
-next_q_values_selected shape: (10,)
-target_q_values shape (before squeezing): (10, 1)
-target_q_values shape (after squeezing): (10,)
-target_q_values shape (after expanding dimensions): (10, 1, 1, 1)
-mask shape: (10, 9, 9, 9)
-target_q_values shape (after applying mask): (10, 9, 9, 9)
-target_q_values shape (after reshaping): (10, 729)
-Step # 0
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=7>, <tf.Tensor: shape=(), dtype=int32, numpy=6>, <tf.Tensor: shape=(), dtype=int32, numpy=2>)
-Reward: -5
-Episode reward: -5
-
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 0 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 0]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [0 8 9 7 1 5 2 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Action: (3, 8, 9)
-        Reward: -5
-        Next state: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 0 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 9]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [0 8 9 7 1 5 2 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Done: False
-        Memory size: 11
-        Batch size: 20
-state_batch shape: (11, 9, 9, 1)
-action_batch shape: (11, 3)
-reward_batch shape: (11, 1)
-next_state_batch shape: (11, 9, 9, 1)
-done_batch shape: (11, 1)
-next_q_values shape: (11, 9, 9, 9)
-current_q_values shape: (11, 9, 9, 9)
-next_q_values_selected shape: (11,)
-target_q_values shape (before squeezing): (11, 1)
-target_q_values shape (after squeezing): (11,)
-target_q_values shape (after expanding dimensions): (11, 1, 1, 1)
-mask shape: (11, 9, 9, 9)
-target_q_values shape (after applying mask): (11, 9, 9, 9)
-target_q_values shape (after reshaping): (11, 729)
-Step # 1
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=3>, <tf.Tensor: shape=(), dtype=int32, numpy=8>, <tf.Tensor: shape=(), dtype=int32, numpy=9>)
-Reward: -5
-Episode reward: -10
-
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 0 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 9]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [0 8 9 7 1 5 2 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Action: (7, 0, 4)
-        Reward: -5
-        Next state: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 0 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 9]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [4 8 9 7 1 5 2 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Done: False
-        Memory size: 12
-        Batch size: 20
-state_batch shape: (12, 9, 9, 1)
-action_batch shape: (12, 3)
-reward_batch shape: (12, 1)
-next_state_batch shape: (12, 9, 9, 1)
-done_batch shape: (12, 1)
-next_q_values shape: (12, 9, 9, 9)
-current_q_values shape: (12, 9, 9, 9)
-next_q_values_selected shape: (12,)
-target_q_values shape (before squeezing): (12, 1)
-target_q_values shape (after squeezing): (12,)
-target_q_values shape (after expanding dimensions): (12, 1, 1, 1)
-mask shape: (12, 9, 9, 9)
-target_q_values shape (after applying mask): (12, 9, 9, 9)
-target_q_values shape (after reshaping): (12, 729)
-Step # 2
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=7>, <tf.Tensor: shape=(), dtype=int32, numpy=0>, <tf.Tensor: shape=(), dtype=int32, numpy=4>)
-Reward: -5
-Episode reward: -15
-
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
-Remembering experience:
-        State: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 0 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 9]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [4 8 9 7 1 5 2 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Action: (1, 6, 6)
-        Reward: -5
-        Next state: [[6 9 5 1 2 7 3 8 4]
- [1 3 0 4 5 9 6 7 2]
- [7 2 4 0 3 6 9 1 5]
- [8 5 1 2 6 4 7 3 9]
- [2 7 3 9 8 1 5 0 6]
- [9 4 6 0 7 3 8 2 1]
- [3 1 7 6 9 2 4 5 8]
- [4 8 9 7 1 5 2 6 3]
- [5 6 2 3 4 8 1 9 7]]
-        Done: False
-        Memory size: 13
-        Batch size: 20
-state_batch shape: (13, 9, 9, 1)
-action_batch shape: (13, 3)
-reward_batch shape: (13, 1)
-next_state_batch shape: (13, 9, 9, 1)
-done_batch shape: (13, 1)
-next_q_values shape: (13, 9, 9, 9)
-current_q_values shape: (13, 9, 9, 9)
-next_q_values_selected shape: (13,)
-target_q_values shape (before squeezing): (13, 1)
-target_q_values shape (after squeezing): (13,)
-target_q_values shape (after expanding dimensions): (13, 1, 1, 1)
-mask shape: (13, 9, 9, 9)
-target_q_values shape (after applying mask): (13, 9, 9, 9)
-target_q_values shape (after reshaping): (13, 729)
-Step # 3
-Chosen action: (<tf.Tensor: shape=(), dtype=int32, numpy=1>, <tf.Tensor: shape=(), dtype=int32, numpy=6>, <tf.Tensor: shape=(), dtype=int32, numpy=6>)
+Exploration rate (epsilon): 1.0
+Running total step #46
+Puzzle step # 0
+Chosen action: (4, 2, 1)
 Reward: -5
 Episode reward: -20
 
-Exploration rate (epsilon): tf.Tensor(1.0, shape=(), dtype=float32)
+Exploration rate (epsilon): 1.0
+Running total step #47
+Puzzle step # 0
+Chosen action: (7, 7, 1)
+Reward: -5
+Episode reward: -25
+
+Exploration rate (epsilon): 1.0
+Batch size: 20
+state_batch shape: (20, 9, 9, 1)
+action_batch shape: (20, 3)
+reward_batch shape: (20, 1)
+next_state_batch shape: (20, 9, 9, 1)
+done_batch shape: (20, 1)
+next_q_values shape: (20, 9, 9, 9)
+current_q_values shape: (20, 9, 9, 9)
+next_q_values_selected shape: (20,)
+target_q_values shape (before squeezing): (20, 1)
+target_q_values shape (after squeezing): (20,)
+target_q_values shape (after expanding dimensions): (20, 1, 1, 1)
+mask shape: (20, 9, 9, 9)
+target_q_values shape (after applying mask): (20, 9, 9, 9)
+target_q_values shape (after reshaping): (20, 729)
+Puzzle # 15
+Running total step #67
+Puzzle step # 0
+Chosen action: (5, 5, 3)
+Reward: -5
+Episode reward: -5
+
+Exploration rate (epsilon): 0.9950000047683716
+Running total step #68
+Puzzle step # 0
+Chosen action: (1, 4, 8)
+Reward: -5
+Episode reward: -10
+
+Exploration rate (epsilon): 0.9950000047683716
+Running total step #69
+Puzzle step # 0
+Chosen action: (4, 2, 2)
+Reward: -5
+Episode reward: -15
+
+Exploration rate (epsilon): 0.9950000047683716
+Running total step #70
+Puzzle step # 0
+Chosen action: (4, 3, 7)
+Reward: -5
+Episode reward: -20
+
+Exploration rate (epsilon): 0.9950000047683716
+Running total step #71
+Puzzle step # 0
+Chosen action: (7, 3, 4)
+Reward: -5
+Episode reward: -25
+
+Exploration rate (epsilon): 0.9950000047683716
+Running total step #72
+Puzzle step # 0
+Chosen action: (7, 6, 2)
+Reward: -5
+Episode reward: -30
+
+Exploration rate (epsilon): 0.9950000047683716
+
+Remembering experience:
+        State: [[9 4 7 8 1 2 5 6 3]
+ [5 8 0 7 0 4 1 9 0]
+ [2 6 1 9 0 0 4 7 8]
+ [1 5 6 3 4 9 2 8 7]
+ [8 7 9 6 2 1 3 5 4]
+ [3 2 4 5 0 7 6 1 9]
+ [6 9 0 2 5 3 7 4 1]
+ [7 1 2 4 9 6 8 3 5]
+ [4 3 5 1 7 8 0 2 6]]
+        Action: (8, 6, 9)
+        Reward: -5
+        Next state: [[9 4 7 8 1 2 5 6 3]
+ [5 8 0 7 0 4 1 9 0]
+ [2 6 1 9 0 0 4 7 8]
+ [1 5 6 3 4 9 2 8 7]
+ [8 7 9 6 2 1 3 5 4]
+ [3 2 4 5 0 7 6 1 9]
+ [6 9 0 2 5 3 7 4 1]
+ [7 1 2 4 9 6 8 3 5]
+ [4 3 5 1 7 8 9 2 6]]
+        Done: False
+        Memory size: 101
+        
