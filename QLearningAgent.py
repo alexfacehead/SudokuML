@@ -228,7 +228,14 @@ class QLearningAgent():
         """
         self.memory.append((state, action, reward, next_state, done))
 
-        msg = f"Remembering experience:\nState: {state}\nAction: {format_action_tuple(action)}\nReward: {reward}\nNext state: {next_state}\nDone: {done}\nMemory size: {len(self.memory)}\nBatch size: {batch_size}"
+        msg = """Remembering experience:
+        State: {}
+        Action: {}
+        Reward: {}
+        Next state: {}
+        Done: {}
+        Memory size: {}
+        """.format(state, format_action_tuple(action), reward, next_state, done, len(self.memory))
         if debug:
             print("\n" + str(msg))
         else:
@@ -364,5 +371,5 @@ class QLearningAgent():
         """
         self.exploration_rate = self.exploration_decay_schedule(step)
 
-def format_action_tuple(action_tuple):
-    return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"
+def format_action_tuple(action_tuple : Tuple[int, int, int]) -> str:
+        return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"

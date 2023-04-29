@@ -60,7 +60,8 @@ class SudokuTrainer():
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
-                    msg3 = f"Step # {self.step}\nChosen action: {QLearningAgent.format_action_tuple(action)}\nReward: {reward}\nEpisode reward: {episode_reward}\n"
+                    msg3 = "Step # " + str(self.step) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
+                    "Episode reward: " + str(episode_reward) + "\n"
 
                     if done or self.step == allowed_steps - 1:
                         break
