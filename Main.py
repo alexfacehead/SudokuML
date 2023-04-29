@@ -1,4 +1,5 @@
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from SudokuTrainer import SudokuTrainer
 from QLearningAgent import QLearningAgent
@@ -53,7 +54,13 @@ def __main__():
         agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
 
         trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
-        trainer_easy.train(10, 100, 1024, 100)
+
+        epochs = 10
+        allowed_steps = 100
+        batch_size = 20
+        target_update_interval = 100
+
+        trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval)
 
 if __name__ == "__main__":
     __main__()

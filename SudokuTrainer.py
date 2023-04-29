@@ -34,19 +34,30 @@ class SudokuTrainer():
             A list of integers representing the total rewards for each episode.
         """
         for epoch in range(epochs):
+            print("Epoch # " + str(epoch))
+
             puzzles = self.data_loader.get_puzzles()
+            puzzle_counter = 0  # Added puzzle counter
             for sudoku_board in puzzles:
+                puzzle_counter += 1  # Increment puzzle counter
+                print("Puzzle # " + str(puzzle_counter))  # Print current puzzle number
+
                 state = self.environment.reset(sudoku_board)  # Pass the sudoku_board to the reset function
                 self.step = 0
                 episode_reward = 0
 
                 for _ in range(allowed_steps):
+                    
                     available_actions = self.environment.get_available_actions(state)
                     action = self.agent.choose_action(state, available_actions)
                     next_state, reward, done = self.environment.step(action)
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
+                    print("Step # " + str(self.step))
+                    print("Chosen action: " + str(action))
+                    print("Reward: " + str(reward))
+                    print("Episode reward: " + str(episode_reward))
 
                     if done or self.step == allowed_steps - 1:
                         break
@@ -55,15 +66,16 @@ class SudokuTrainer():
 
                     if self.step % target_update_interval == 0:
                         self.agent.update_target_q_network()
+                    print("Exploration rate (epsilon): " + str(self.agent.exploration_rate))
 
                     self.agent.decay_exploration_rate(self.step)
 
                     self.step += 1
 
                 self.episode_rewards.append(episode_reward)
-                print("Saving weights for epoch " + str(epoch))
-                self.agent.save_weights()
-
+            
+            print("Saving weights for epoch " + str(epoch))
+            self.agent.save_weights()
         return self.episode_rewards
 
     def evaluate(self, episodes: int) -> float:
