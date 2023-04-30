@@ -49,8 +49,41 @@ class SudokuEnvironment():
 
         self.incorrect_moves_count = 0
         return self.board
-
+    
     def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool]:
+        row, col, num = action
+        is_valid = self.is_valid_move(row, col, num, suppress=False)
+
+        if self.board[row, col] != 0 or (action not in all_available_actions and action not in valid_actions):
+            self.incorrect_moves_count += 1
+            done = self.incorrect_moves_count >= self.max_incorrect_moves
+            reward = self.get_reward(action, valid_actions)
+            next_state = tf.identity(self.board)
+            print_debug_message("Case 1: Done = " + str(done))
+            return next_state, reward, done
+
+        reward = self.get_reward(action, valid_actions)
+
+        if is_valid:
+            indices = tf.convert_to_tensor([[row, col]])
+            updates = tf.convert_to_tensor([num])
+            self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
+            done = self.is_solved()
+            print_debug_message("Case 2: Done = " + str(done))
+        else:
+            self.incorrect_moves_count += 1
+            done = self.incorrect_moves_count >= self.max_incorrect_moves
+            print_debug_message("Case 3: Done = " + str(done))
+
+        next_state = tf.identity(self.board)
+
+        msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward) + ", Done: " + str(done)
+        print_debug_message(msg2)
+
+        return next_state, reward, done
+
+
+    def step_old(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool]:
         """Take an action and observe the next state and reward.
 
         Args:
@@ -73,6 +106,8 @@ class SudokuEnvironment():
             done = self.incorrect_moves_count >= self.max_incorrect_moves
             reward = self.get_reward(action, valid_actions)
             next_state = tf.identity(self.board)
+            print("Done?" + str(done))
+            print_debug_message("Done?" + str(done))
             return next_state, reward, done
 
         # Get reward first, then update the board state
@@ -179,8 +214,8 @@ class SudokuEnvironment():
             for col in range(9):
                 if board_state[row, col] == 0:
                     for num in range(1, 10):
-                        print_debug_message("Calling is_valid_move from get_valid_actions")
-                        if self.is_valid_move(row, col, num, suppress=False):
+                        #print_debug_message("Calling is_valid_move from get_valid_actions")
+                        if self.is_valid_move(row, col, num, suppress=True):
                             valid_actions.append((row, col, num))
         #print_debug_message(f"Board state:\n{board_state}")
         print_debug_message(f"Valid actions: {valid_actions}")

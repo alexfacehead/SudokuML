@@ -3,6 +3,7 @@ import QLearningAgent
 import SudokuEnvironment
 import tensorflow as tf
 from typing import List
+from QLearningAgent import print_debug_message
 
 class SudokuTrainer():
     def __init__(self, agent: QLearningAgent, environment: SudokuEnvironment, data_loader: DataLoader):
@@ -23,36 +24,31 @@ class SudokuTrainer():
         self.current_puzzle_steps = 0
 
     def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int) -> List[int]:
-        """Train the agent for a given number of epochs.
-
-        Args:
-            epochs: An integer indicating the number of epochs to train for.
-            allowed_steps: An integer indicating the maximum number of steps allowed in each episode.
-            batch_size: An integer indicating the size of the batch for replaying experiences.
-            target_update_interval: An integer indicating the number of steps before updating the target Q-network.
-
-        Returns:
-            A list of integers representing the total rewards for each episode.
-        """
+        solved_puzzles = 0  # Initialize solved puzzles counter
         for epoch in range(epochs):
             msg1 = "Epoch # " + str(epoch) + "\n"
             print(msg1)
             with open("debug_output.txt", "a") as f:
                 f.write(msg1)
 
+            # Evaluate after each epoch
+            avg_reward = self.evaluate(20)
+            print(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
+            QLearningAgent.print_debug_message(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
+
             puzzles = self.data_loader.get_puzzles()
-            puzzle_counter = 0  # Added puzzle counter
+            puzzle_counter = 0
             for sudoku_board in puzzles:
                 str1 = "Board: " + str(sudoku_board) + "\n"
                 print(str1)
                 QLearningAgent.print_debug_message(str1)
-                puzzle_counter += 1  # Increment puzzle counter
-                msg2 = "Puzzle # " + str(puzzle_counter) + "\n"  # Print current puzzle number
+                puzzle_counter += 1
+                msg2 = "Puzzle # " + str(puzzle_counter) + "\n"
                 print(msg2)
                 with open("debug_output.txt", "a") as f:
                     f.write(msg2)
 
-                state = self.environment.reset(sudoku_board)  # Pass the sudoku_board to the reset function
+                state = self.environment.reset(sudoku_board)
                 self.current_puzzle_steps = 0
                 episode_reward = 0
 
@@ -93,35 +89,57 @@ class SudokuTrainer():
                     self.current_puzzle_steps += 1
 
                 self.episode_rewards.append(episode_reward)
-            
+                if done:
+                    solved_puzzles += 1  # Increment solved puzzles counter
+
+                # Print the number of solved puzzles for every 20 puzzles
+                if puzzle_counter % 20 == 0:
+                    print(f"Solved puzzles in the last 20: {solved_puzzles}")
+                    QLearningAgent.print_debug_message(f"Solved puzzles in the last 20: {solved_puzzles}")
+                    solved_puzzles = 0  # Reset the solved puzzles counter
+
             print("Saving weights for epoch " + str(epoch))
             self.agent.save_weights()
         return self.episode_rewards
 
     def evaluate(self, episodes: int) -> float:
-        """Evaluate the agent on a given number of episodes.
-
-        Args:
-            episodes: An integer indicating the number of episodes to evaluate on.
-
-        Returns:
-            A float representing the average reward per episode.
-        """
+        print_debug_message("Begin evaluation block!")
         episode_rewards = tf.Variable(tf.zeros([episodes], dtype=tf.float32))
 
         for i in range(episodes):
+            #print_debug_message(f"Episode {i + 1} of {episodes} in evaluate - before loop")
+            #print_debug_message("Getting a random board")
             sudoku_board = self.data_loader.get_random_board()
+            #print_debug_message("Random board obtained")
+            #print_debug_message("Resetting the environment")
             state = self.environment.reset()
+            #print_debug_message("Environment reset")
+            
             episode_reward = 0
             done = False
 
             while not done:
-                available_actions = self.environment.get_valid_actions(state)
-                action = self.agent.choose_action(state, available_actions, train=False)
-                next_state, reward, done = self.environment.step(action)
+                #print_debug_message("First done: " + str(done))
+                valid_actions = self.environment.get_valid_actions(state)
+                all_available_actions = self.environment.get_all_available_actions(state)
+                action = self.agent.choose_action(state, valid_actions, all_available_actions, train=False)
+                next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
                 episode_reward += reward
                 state = next_state
 
-            episode_rewards[i].assign(episode_reward)
+                #print_debug_message("Current state: " + str(state))
+                #print_debug_message("Action: " + str(action))
+                #print_debug_message("Reward: " + str(reward))
 
+            #print_debug_message("Attempting assign!")
+            episode_rewards[i].assign(episode_reward)
+            #print_debug_message(f"Assigned episode reward {episode_reward} to index {i}")
+            #print_debug_message(str(done))
+            #print_debug_message(f"Episode {i + 1} of {episodes} in evaluate - after loop")
+
+        print_debug_message("episode rewards: " + str(episode_rewards))
         return tf.reduce_mean(episode_rewards)
+
+
+
+
