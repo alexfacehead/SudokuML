@@ -4,7 +4,10 @@ from typing import List, Tuple
 from collections import deque
 import re
 import os
-debug = False
+from dotenv import load_dotenv
+load_dotenv()
+debug = os.getenv("debug").lower() == "true"
+print("debug=", str(debug))
 
 class QLearningAgent():
     def __init__(self, learning_rate: float, discount_factor: float, exploration_rate: \
@@ -109,7 +112,12 @@ class QLearningAgent():
         Returns:
             A tuple of the form (row, col, num) representing the chosen action.
         """
+        
+        print_debug_message(f"State:\n{state}")
+        print_debug_message(f"Available actions: {available_actions}")
         if train and tf.random.uniform(()) <= self.exploration_rate:
+            if not available_actions:  # Add this check
+                return None  # Return a special action (e.g., None) when there are no available actions
             return self.explore(available_actions)
         else:
             return self.exploit(state, available_actions)
@@ -126,7 +134,7 @@ class QLearningAgent():
         shuffled_actions = tf.random.shuffle(available_actions)
         return tuple(tf.gather(shuffled_actions, 0))
 
-    def exploit(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
+    def exploit_old(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
         """Choose an action based on the Q-values from the Q-network.
 
         Args:
@@ -143,28 +151,36 @@ class QLearningAgent():
             index = action[0] * 9 * 9 + action[1] * 9 + (action[2] - 1)  # Convert the 3D index to 1D index
             mask = mask + tf.reshape(tf.one_hot(index, 9 * 9 * 9), (9, 9, 9))
         masked_q_values = q_values * mask
-        best_action = tf.unravel_index(tf.argmax(masked_q_values), masked_q_values.shape)
+        best_action = tf.unravel_index(tf.cast(tf.argmax(tf.reshape(masked_q_values, (-1,))), dtype=tf.int32), masked_q_values.shape)
         return tuple(best_action)
+
+    def exploit(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
+        print_debug_message("Choosing to exploit")
+        state = tf.expand_dims(state, axis=0)
+        q_values = self.model(state)
+        mask = tf.zeros_like(q_values)
+
+        for action in available_actions:
+            # Ensure that action[2] is greater than or equal to 1
+            if action[2] >= 1:
+                mask = mask + tf.one_hot(action[0] * 9 * 9 + action[1] * 9 + (action[2] - 1), 9 * 9 * 9)
+
+        masked_q_values = tf.where(tf.equal(mask, 0), tf.ones_like(q_values) * -1e9, q_values)
+        max_value_index = tf.argmax(masked_q_values, axis=-1)
+        
+        print("masked_q_values:", masked_q_values)
+        print("max_value_index:", max_value_index)
+
+        row, col, num = max_value_index // (9 * 9), (max_value_index // 9) % 9, (max_value_index % 9) + 1
+        return (row.numpy().item(), col.numpy().item(), num.numpy().item())
 
     def replay(self, batch_size: int) -> None:
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = self.create_experience_batch(batch_size)
-        if (self.replay_count % 50 == 0):
-            msg1 = "Batch size: " + str(batch_size)
-            if debug:
-                print(msg1)
-            else:
-                with open("debug_output.txt", "a") as f:
-                    f.write(msg1 + "\n")
-            msg2 = "state_batch shape: " + str(state_batch.shape) + "\n" + \
-                "action_batch shape: " + str(action_batch.shape) + "\n" + \
-                "reward_batch shape: " + str(reward_batch.shape) + "\n" + \
-                "next_state_batch shape: " + str(next_state_batch.shape) + "\n" + \
-                "done_batch shape: " + str(done_batch.shape)
-            if debug:
-                print(msg2)
-            else:
-                with open("debug_output.txt", "a") as f:
-                    f.write(msg2 + "\n")
+        #if (self.replay_count % 50 == 0):
+        msg1 = "Batch size: " + str(batch_size)
+        print_debug_message(msg1)
+        msg2 = f"state_batch shape: {state_batch.shape}\naction_batch shape: {action_batch.shape}\nreward_batch shape: {reward_batch.shape}\nnext_state_batch shape: {next_state_batch.shape}\ndone_batch shape: {done_batch.shape}"
+        print_debug_message(msg2)
 
         next_q_values = self.target_model.predict(next_state_batch)
         next_q_values = tf.reshape(next_q_values, (-1, 9, 9, 9))
@@ -175,6 +191,8 @@ class QLearningAgent():
         msg3 = msg3 + "current_q_values shape: " + str(current_q_values.shape) + "\n"
 
         value_indices = tf.cast(action_batch[:, 2], tf.int32) - 1
+        #action_indices = tf.stack([tf.range(batch_size), action_batch[:, 0], action_batch[:, 1], action_batch[:, 2] - 1], axis=-1)
+
         gather_indices = tf.concat([tf.cast(action_batch[:, :2], tf.int32), tf.expand_dims(value_indices, axis=-1)], axis=-1)
         next_q_values_selected = tf.gather_nd(next_q_values, gather_indices, batch_dims=1)
         msg3 = msg3 + "next_q_values_selected shape: " + str(next_q_values_selected.shape) + "\n"
@@ -205,12 +223,8 @@ class QLearningAgent():
         target_q_values = tf.reshape(target_q_values, (-1, 9 * 9 * 9))
     
         msg3 = msg3 + "target_q_values shape (after reshaping): " + str(target_q_values.shape) + "\n"
-        if (self.replay_count % 50 == 0):
-            if debug:
-                print(msg3)
-            else:
-                with open("debug_output.txt", "a") as f:
-                    f.write(msg3)
+
+        print_debug_message(msg3)
         self.replay_count = self.replay_count + 1
 
         dataset = tf.data.Dataset.from_tensor_slices((states, target_q_values))
@@ -243,12 +257,8 @@ class QLearningAgent():
         Done: {}
         Memory size: {}
         """.format(state, format_action_tuple(action), reward, next_state, done, len(self.memory))
-        if self.remember_count % 50 == 0:
-            if debug:
-                print("\n" + str(msg))
-            else:
-                with open("debug_output.txt", "a") as f:
-                    f.write("\n" + str(msg))
+        if self.remember_count == 50:
+            print_debug_message(msg)
         self.remember_count = self.remember_count + 1
 
     def create_experience_batch(self, batch_size: int) -> tf.Tensor:
@@ -375,3 +385,11 @@ class QLearningAgent():
 
 def format_action_tuple(action_tuple : Tuple[int, int, int]) -> str:
         return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"
+
+def print_debug_message(message: str) -> None:
+        if debug:
+            print("Beginning debug output since debug=" + str(debug))
+            print(message)
+        else:
+            with open("debug_output.txt", "a") as f:
+                f.write(message + "\n")

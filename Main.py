@@ -7,6 +7,11 @@ from SudokuEnvironment import SudokuEnvironment
 from DataLoader import DataLoader
 from DataLoader import DataLoader
 import argparse
+from dotenv import load_dotenv
+
+load_dotenv()
+google_colab_path = os.getenv("google_colab_path")
+local_path = os.getenv("local_path")
 
 def __main__():
     """Run the main program.
@@ -44,22 +49,19 @@ def __main__():
     except ValueError:
         strategy = tf.distribute.OneDeviceStrategy("CPU:0")
 
-    decay_steps = 50           # Number of steps before applying the exploration rate decay
+    decay_steps = 5             # Number of steps before applying the exploration rate decay
     max_memory_size = 5000       # Maximum size of the experience replay memory
 
-    file_path = "/home/dev/SudokuML/weights"  # File path for saving and loading the Q-Network model
-
     if os.path.exists('/content/drive'):  # Google Colab environment
-        file_path = '/content/drive/MyDrive/SudokuML/weights'
+        file_path = google_colab_path
     else:  # Local environment
-        file_path = '/home/dev/SudokuML/weights'
+        file_path = local_path
 
     data_loader_easy = DataLoader("./resources/sudoku_mini_easy.csv", 8)
 
     easy_puzzles = data_loader_easy.get_puzzles()
-
     with strategy.scope():
-        env = SudokuEnvironment(easy_puzzles, max_incorrect_moves=10) # pass the list of puzzles to the environment
+        env = SudokuEnvironment(easy_puzzles, 10) # pass the list of puzzles to the environment
         agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
         trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
 

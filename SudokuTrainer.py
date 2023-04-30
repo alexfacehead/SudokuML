@@ -43,6 +43,9 @@ class SudokuTrainer():
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0  # Added puzzle counter
             for sudoku_board in puzzles:
+                str1 = "Board: " + str(sudoku_board) + "\n"
+                print(str1)
+                QLearningAgent.print_debug_message(str1)
                 puzzle_counter += 1  # Increment puzzle counter
                 msg2 = "Puzzle # " + str(puzzle_counter) + "\n"  # Print current puzzle number
                 print(msg2)
@@ -57,10 +60,14 @@ class SudokuTrainer():
                     self.agent.decay_exploration_rate(self.total_steps)
                     available_actions = self.environment.get_available_actions(state)
                     action = self.agent.choose_action(state, available_actions)
+                    if action is None:
+                        continue
                     next_state, reward, done = self.environment.step(action)
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
+                    # new
+                    self.environment.board = state
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
                     msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
