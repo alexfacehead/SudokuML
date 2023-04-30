@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 google_colab_path = os.getenv("google_colab_path")
 local_path = os.getenv("local_path")
+if local_path is None:
+    local_path = os.getcwd()
 
 def __main__():
     """Run the main program.

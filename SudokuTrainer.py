@@ -58,11 +58,12 @@ class SudokuTrainer():
 
                 for _ in range(allowed_steps):
                     self.agent.decay_exploration_rate(self.total_steps)
-                    available_actions = self.environment.get_available_actions(state)
-                    action = self.agent.choose_action(state, available_actions)
+                    valid_actions = self.environment.get_valid_actions(state)
+                    all_available_actions = self.environment.get_all_available_actions(state)
+                    action = self.agent.choose_action(state, valid_actions, all_available_actions)
                     if action is None:
                         continue
-                    next_state, reward, done = self.environment.step(action)
+                    next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
@@ -115,7 +116,7 @@ class SudokuTrainer():
             done = False
 
             while not done:
-                available_actions = self.environment.get_available_actions(state)
+                available_actions = self.environment.get_valid_actions(state)
                 action = self.agent.choose_action(state, available_actions, train=False)
                 next_state, reward, done = self.environment.step(action)
                 episode_reward += reward

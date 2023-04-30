@@ -5,10 +5,17 @@ from collections import deque
 import re
 import os
 from dotenv import load_dotenv
+import numpy as np
+import random
 load_dotenv()
-debug = os.getenv("debug").lower() == "true"
-print("debug=", str(debug))
-
+print_debug = os.getenv("print_debug").lower() == "true"
+if print_debug is None:
+    print_debug = False
+debug_level = os.getenv("debug_level")
+if debug_level is None:
+    debug_level = 3
+print("print_debug=", str(print_debug))
+print("debug level=" + debug_level)
 class QLearningAgent():
     def __init__(self, learning_rate: float, discount_factor: float, exploration_rate: \
                  float, exploration_decay: float, tpu_strategy: tf.distribute.TPUStrategy, decay_steps: \
@@ -98,15 +105,16 @@ class QLearningAgent():
         dense_units = [512, 9 * 9 * 9]
         
         return self._make_model(conv_layers, conv_filters, dense_layers, dense_units)
-    
+
     # available_actions : List[Tuple[int, int, int]]
     # is train is True, we want exploration. if train is False, we want only exploitation/learned policy
-    def choose_action(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]], train: bool=True) -> Tuple[int, int, int]:
+    def choose_action(self, state: tf.Tensor, valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]], train: bool=True) -> Tuple[int, int, int]:
         """Choose an action based on the state and the available actions.
 
         Args:
             state: A tensor of shape (9, 9, 1) representing the current board state.
-            available_actions: A list of tuples of the form (row, col, num) representing the possible actions.
+            valid_actions: A list of tuples of the form (row, col, num) representing the valid actions.
+            all_available_actions: A list of tuples of the form (row, col, num) representing all available actions, including empty cells with invalid numbers.
             train: A boolean indicating whether to use exploration or exploitation.
 
         Returns:
@@ -114,13 +122,16 @@ class QLearningAgent():
         """
         
         print_debug_message(f"State:\n{state}")
-        print_debug_message(f"Available actions: {available_actions}")
+        print_debug_message(f"Valid actions: {valid_actions}")
+        print_debug_message(f"All available actions: {all_available_actions}")
+        
         if train and tf.random.uniform(()) <= self.exploration_rate:
-            if not available_actions:  # Add this check
+            if not all_available_actions:  # Check for all_available_actions
                 return None  # Return a special action (e.g., None) when there are no available actions
-            return self.explore(available_actions)
+            return self.explore(all_available_actions)  # Explore using all_available_actions
         else:
-            return self.exploit(state, available_actions)
+            return self.exploit(state, valid_actions)  # Exploit using valid_actions
+
     
     def explore(self, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
         """Choose an action randomly from the available actions.
@@ -387,8 +398,9 @@ def format_action_tuple(action_tuple : Tuple[int, int, int]) -> str:
         return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"
 
 def print_debug_message(message: str) -> None:
-        if debug:
-            print("Beginning debug output since debug=" + str(debug))
+    if int(debug_level) < 3:
+        if print_debug:
+            print("Beginning debug output since debug=" + str(print_debug))
             print(message)
         else:
             with open("debug_output.txt", "a") as f:
