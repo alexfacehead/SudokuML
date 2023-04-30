@@ -48,90 +48,38 @@ class SudokuEnvironment():
             self.board = sudoku_board
 
         self.incorrect_moves_count = 0
+
         return self.board
     
-    def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool]:
+    def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool, bool]:
         row, col, num = action
         is_valid = self.is_valid_move(row, col, num, suppress=False)
+        status = self.is_solved()
 
         if self.board[row, col] != 0 or (action not in all_available_actions and action not in valid_actions):
             self.incorrect_moves_count += 1
             done = self.incorrect_moves_count >= self.max_incorrect_moves
             reward = self.get_reward(action, valid_actions)
             next_state = tf.identity(self.board)
-            print_debug_message("Case 1: Done = " + str(done))
-            return next_state, reward, done
 
+            return next_state, reward, done, status
+        
         reward = self.get_reward(action, valid_actions)
-
         if is_valid:
             indices = tf.convert_to_tensor([[row, col]])
             updates = tf.convert_to_tensor([num])
             self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
-            done = self.is_solved()
-            print_debug_message("Case 2: Done = " + str(done))
-        else:
-            self.incorrect_moves_count += 1
-            done = self.incorrect_moves_count >= self.max_incorrect_moves
-            print_debug_message("Case 3: Done = " + str(done))
-
-        next_state = tf.identity(self.board)
-
-        msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward) + ", Done: " + str(done)
-        print_debug_message(msg2)
-
-        return next_state, reward, done
-
-
-    def step_old(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool]:
-        """Take an action and observe the next state and reward.
-
-        Args:
-            action: A tuple of the form (row, col, num) representing the action to take.
-
-        Returns:
-            A tuple of the form (next_state: tf.Tensor,
-                                reward: float,
-                                done: bool)
-            representing the next board state,
-            the reward for taking the action,
-            and whether the episode is over or not.
-        """
-        row, col, num = action
-        #print_debug_message("Calling is_valid_move from step")
-        is_valid = self.is_valid_move(row, col, num, suppress=False)
-
-        if self.board[row, col] != 0 or (action not in all_available_actions and action not in valid_actions):
-            self.incorrect_moves_count += 1
-            done = self.incorrect_moves_count >= self.max_incorrect_moves
-            reward = self.get_reward(action, valid_actions)
-            next_state = tf.identity(self.board)
-            print("Done?" + str(done))
-            print_debug_message("Done?" + str(done))
-            return next_state, reward, done
-
-        # Get reward first, then update the board state
-        reward = self.get_reward(action, valid_actions)
-
-        if is_valid:
-            indices = tf.convert_to_tensor([[row, col]])
-            updates = tf.convert_to_tensor([num])
-            self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
-            done = self.is_solved()
-            msg1 = "Board solved? " + str(done)
-            print_debug_message(msg1)
-            print(msg1)
+            done = status
         else:
             self.incorrect_moves_count += 1
             done = self.incorrect_moves_count >= self.max_incorrect_moves
 
         next_state = tf.identity(self.board)
 
-        # Print debug messages
         msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward) + ", Done: " + str(done)
         print_debug_message(msg2)
 
-        return next_state, reward, done
+        return next_state, reward, done, status
 
     def render(self):
         """Print the board to the standard output.
@@ -154,14 +102,14 @@ class SudokuEnvironment():
         col_values = tf.slice(self.board, [0, col], [9, 1])
 
         if tf.reduce_any(tf.equal(row_values, num)).numpy() or tf.reduce_any(tf.equal(col_values, num)).numpy():
-            #print_debug_message("Invalid move")
+
             return False
 
         grid_row, grid_col = row // 3 * 3, col // 3 * 3
         grid = tf.slice(self.board, [grid_row, grid_col], [3, 3])
 
         if tf.reduce_any(tf.equal(grid, num)).numpy() or self.board[row, col].numpy() != 0:
-            #print_debug_message("Invalid move")
+
             return False
         
         msg7 = "Valid move determined."
@@ -214,10 +162,8 @@ class SudokuEnvironment():
             for col in range(9):
                 if board_state[row, col] == 0:
                     for num in range(1, 10):
-                        #print_debug_message("Calling is_valid_move from get_valid_actions")
                         if self.is_valid_move(row, col, num, suppress=True):
                             valid_actions.append((row, col, num))
-        #print_debug_message(f"Board state:\n{board_state}")
         print_debug_message(f"Valid actions: {valid_actions}")
 
         return valid_actions
@@ -246,8 +192,6 @@ class SudokuEnvironment():
 
     def get_reward(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]]) -> float:
         row, col, num = action
-        msg = "Calling is_valid_move from get_reward on " + str(format_action_tuple(action))
-        print_debug_message(msg)
 
         if self.board[row, col] != 0:
             return self.REWARD_DICT["invalid_move"]  # Penalty for attempting to place a number in an already filled cell
@@ -276,14 +220,8 @@ class SudokuEnvironment():
 
         if is_solved:
             reward += self.REWARD_DICT["puzzle_solved"]
-            print_debug_message("is_solved_bonus: " + self.REWARD_DICT["puzzle_solved"])
+            print_debug_message("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
         if row_col_box_bonus > 0:
             print_debug_message("row_col_box_bonus: " + str(row_col_box_bonus))
-        if is_solved:
-            print_debug_message("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
-
-        action_tuple = action
-        formatted_action = format_action_tuple(action_tuple)
-        print_debug_message("Reward for action {}: {}".format(formatted_action, reward))
 
         return reward

@@ -18,7 +18,8 @@ class DataLoader():
         self.data_path = data_path
         self.difficulty = difficulty
         self.puzzles = self.process_data()
-        self.seen = tf.zeros([0, 81], dtype=tf.int32)
+        self.shuffled_puzzles = tf.random.shuffle(self.puzzles)
+        self.current_index = 0
 
     def get_puzzles(self):
         """Get the puzzles as a tensor of shape (n, 9, 9).
@@ -67,37 +68,13 @@ class DataLoader():
         return puzzle_tensor
 
     def get_random_board(self) -> Union[tf.Tensor, None]:
-        """Get a random board from the puzzles without repetition.
-
-        Args:
-            None
-
-        Returns:
-            A tensor of shape (9, 9) representing a random puzzle, or None if all puzzles have been seen.
-        """
-
-        if self.seen.shape[0] == self.puzzles.shape[0]:
+        if self.current_index == self.puzzles.shape[0]:
             return None
 
-        attempt_count = 0
-        while True:
-            attempt_count += 1
-            index = tf.random.uniform(shape=[], minval=0, maxval=self.puzzles.shape[0], dtype=tf.int32)
-            #print_debug_message(f"Random index: {index}")
-            random_board = tf.gather(self.puzzles, index)
-            #print_debug_message(f"Random board (attempt {attempt_count}): \n{random_board}")
-            
-            board_tuple = tf.reshape(random_board, [-1])
-            #print_debug_message(f"Seen tensor: {self.seen}")
-            #print_debug_message(f"Board tuple: {board_tuple}")
-            #print_debug_message(f"Equality result: {tf.equal(self.seen, board_tuple)}")
-            #print_debug_message(f"Reduce any result: {tf.reduce_any(tf.equal(self.seen, board_tuple))}")
+        random_board = self.shuffled_puzzles[self.current_index]
+        self.current_index += 1
 
-            if not tf.reduce_any(tf.reduce_all(tf.equal(self.seen, board_tuple), axis=1)):
-                #print_debug_message(f"Seen tensor shape: {self.seen.shape}")
-                #print_debug_message(f"Board tuple shape: {board_tuple.shape}")
-                self.seen = tf.concat([self.seen, tf.expand_dims(board_tuple, axis=0)], axis=0)
-                #print_debug_message(f"Found unique puzzle (attempt {attempt_count})")
-                return random_board
+        return random_board
+
 
 

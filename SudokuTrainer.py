@@ -23,19 +23,24 @@ class SudokuTrainer():
         self.total_steps = 0
         self.current_puzzle_steps = 0
 
-    def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int) -> List[int]:
+    def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int, force: bool) -> List[int]:
         solved_puzzles = 0  # Initialize solved puzzles counter
         for epoch in range(epochs):
             msg1 = "Epoch # " + str(epoch) + "\n"
             print(msg1)
             with open("debug_output.txt", "a") as f:
                 f.write(msg1)
-
-            # Evaluate after each epoch
-            avg_reward = self.evaluate(20)
-            print(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
-            QLearningAgent.print_debug_message(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
-
+            
+            # Only by default evaluate after one epoch, or if the force flag is used
+            if force or epoch > 0:
+                num_tests = 5
+                avg_reward, total_solved = self.evaluate(num_tests)
+                total_msg_formatted = str(total_solved) + " / " + str(num_tests)
+                print(total_msg_formatted)
+                print(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
+                print_debug_message(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
+                print_debug_message(total_msg_formatted)
+            
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0
             for sudoku_board in puzzles:
@@ -59,14 +64,14 @@ class SudokuTrainer():
                     action = self.agent.choose_action(state, valid_actions, all_available_actions)
                     if action is None:
                         continue
-                    next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
+                    next_state, reward, done, is_solved = self.environment.step(action, valid_actions, all_available_actions)
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
                     # new
                     self.environment.board = state
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
-                    msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
+                    msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) #"\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
 
                     if done or self.current_puzzle_steps == allowed_steps - 1:
@@ -89,13 +94,13 @@ class SudokuTrainer():
                     self.current_puzzle_steps += 1
 
                 self.episode_rewards.append(episode_reward)
-                if done:
+                if is_solved:
                     solved_puzzles += 1  # Increment solved puzzles counter
 
                 # Print the number of solved puzzles for every 20 puzzles
                 if puzzle_counter % 20 == 0:
                     print(f"Solved puzzles in the last 20: {solved_puzzles}")
-                    QLearningAgent.print_debug_message(f"Solved puzzles in the last 20: {solved_puzzles}")
+                    print_debug_message(f"Solved puzzles in the last 20: {solved_puzzles}")
                     solved_puzzles = 0  # Reset the solved puzzles counter
 
             print("Saving weights for epoch " + str(epoch))
@@ -105,41 +110,25 @@ class SudokuTrainer():
     def evaluate(self, episodes: int) -> float:
         print_debug_message("Begin evaluation block!")
         episode_rewards = tf.Variable(tf.zeros([episodes], dtype=tf.float32))
-
+        total_solved = 0
         for i in range(episodes):
-            #print_debug_message(f"Episode {i + 1} of {episodes} in evaluate - before loop")
-            #print_debug_message("Getting a random board")
             sudoku_board = self.data_loader.get_random_board()
-            #print_debug_message("Random board obtained")
-            #print_debug_message("Resetting the environment")
             state = self.environment.reset()
-            #print_debug_message("Environment reset")
             
             episode_reward = 0
             done = False
 
             while not done:
-                #print_debug_message("First done: " + str(done))
                 valid_actions = self.environment.get_valid_actions(state)
                 all_available_actions = self.environment.get_all_available_actions(state)
                 action = self.agent.choose_action(state, valid_actions, all_available_actions, train=False)
-                next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
+                next_state, reward, done, is_solved = self.environment.step(action, valid_actions, all_available_actions)
                 episode_reward += reward
                 state = next_state
+                if is_solved:
+                    total_solved += 1
 
-                #print_debug_message("Current state: " + str(state))
-                #print_debug_message("Action: " + str(action))
-                #print_debug_message("Reward: " + str(reward))
-
-            #print_debug_message("Attempting assign!")
             episode_rewards[i].assign(episode_reward)
-            #print_debug_message(f"Assigned episode reward {episode_reward} to index {i}")
-            #print_debug_message(str(done))
-            #print_debug_message(f"Episode {i + 1} of {episodes} in evaluate - after loop")
 
-        print_debug_message("episode rewards: " + str(episode_rewards))
-        return tf.reduce_mean(episode_rewards)
-
-
-
-
+        print_debug_message("Evaluation results:\nEpisode rewards: " + str(episode_rewards))
+        return tf.reduce_mean(episode_rewards), total_solved

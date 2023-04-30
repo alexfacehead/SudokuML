@@ -8,6 +8,7 @@ from DataLoader import DataLoader
 from DataLoader import DataLoader
 import argparse
 from dotenv import load_dotenv
+import itertools
 
 load_dotenv()
 google_colab_path = os.getenv("google_colab_path")
@@ -24,10 +25,34 @@ def __main__():
     Returns:
         None
     """
+    hyperparameter_space = {
+        'learning_rate': [0.01, 0.1, 0.2],
+        'discount_factor': [0.9, 0.99, 0.999],
+        'exploration_rate': [0.5, 1.0],
+        'exploration_decay': [0.95, 0.99, 0.995],
+        'epochs': [5, 10, 20],
+        'allowed_steps': [50, 100, 200],
+        'batch_size': [10, 20, 40],
+        'target_update_interval': [50, 100, 200],
+        'number_of_puzzles': [5, 10, 20],
+        'decay_steps': [500, 1000, 2000],
+        'max_memory_size': [5000, 10000, 20000]
+    }
+
+    # Check if we're using colab
+    if os.path.exists('/content/drive'):  # Google Colab environment
+        file_path = google_colab_path
+    else:  # Local environment
+        file_path = local_path
+
     # Argparse stuff
     parser = argparse.ArgumentParser(description="Sudoku reinforcement learning")
     parser.add_argument("--fresh", action="store_true", help="Delete debug_output.txt if it exists")
+    parser.add_argument("--force", action="store_true", help="Use --force to enable the force flag")
     args = parser.parse_args()
+
+    # Set force variable to True if --force flag is used, otherwise set it to False
+    force = args.force
 
     if args.fresh and os.path.exists("debug_output.txt"):
         os.remove("debug_output.txt")
@@ -51,15 +76,13 @@ def __main__():
     except ValueError:
         strategy = tf.distribute.OneDeviceStrategy("CPU:0")
 
+    # Set the relatively fixed hyper parameters
     decay_steps = 5             # Number of steps before applying the exploration rate decay
     max_memory_size = 5000       # Maximum size of the experience replay memory
 
-    if os.path.exists('/content/drive'):  # Google Colab environment
-        file_path = google_colab_path
-    else:  # Local environment
-        file_path = local_path
-
+    # Change if you want different puzzles!
     data_loader_easy = DataLoader("./resources/sudoku_mini_easy.csv", 8)
+    data_loader_medium = DataLoader("./resources/sudoku_mini_easy.csv", 8)
 
     easy_puzzles = data_loader_easy.get_puzzles()
     with strategy.scope():
@@ -71,8 +94,43 @@ def __main__():
         allowed_steps = 100
         batch_size = 20
         target_update_interval = 100
+        
 
-        trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval)
+        best_hyperparameters, best_performance = grid_search(hyperparameter_space, strategy, data_loader_easy, decay_steps, max_memory_size, file_path, force)
+        print("Grid search results: Best hyperparameters found: ", best_hyperparameters)
+        print("Grid search results: Best performance: ", best_performance)
+        trainer_easy.print_debug_message("Grid search results: Best hyperparameters found: {}".format(best_hyperparameters))
+        trainer_easy.print_debug_message("Grid search results: Best performance: {}".format(best_performance))
+        # Standard training loop with predefined params
+        #trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval, force)
+
+def train_and_tune(hyperparameters, strategy, data_loader, decay_steps, max_memory_size, file_path, force):
+    easy_puzzles = data_loader.get_puzzles()[:hyperparameters['number_of_puzzles']]
+    with strategy.scope():
+        env = SudokuEnvironment(easy_puzzles, max_incorrect_moves=10)
+        agent = QLearningAgent(hyperparameters['learning_rate'], hyperparameters['discount_factor'], hyperparameters['exploration_rate'], hyperparameters['exploration_decay'], strategy, decay_steps, max_memory_size, file_path)
+        trainer_easy = SudokuTrainer(agent, env, data_loader)
+
+        # You may need to modify the trainer to return the performance metric
+        performance = trainer_easy.train(hyperparameters['epochs'], hyperparameters['allowed_steps'], hyperparameters['batch_size'], hyperparameters['target_update_interval'], force)
+
+    return performance
+
+def grid_search(hyperparameter_space, strategy, data_loader, decay_steps, max_memory_size, file_path, force):
+    keys, values = zip(*hyperparameter_space.items())
+    best_performance = -float('inf')
+    best_hyperparameters = None
+
+    for combination in itertools.product(*values):
+        hyperparameters = dict(zip(keys, combination))
+        # Pass the additional arguments: strategy, data_loader, decay_steps, max_memory_size, and file_path
+        performance = train_and_tune(hyperparameters, strategy, data_loader, decay_steps, max_memory_size, file_path, force)
+
+        if performance > best_performance:
+            best_performance = performance
+            best_hyperparameters = hyperparameters
+
+    return best_hyperparameters, best_performance
 
 if __name__ == "__main__":
     __main__()

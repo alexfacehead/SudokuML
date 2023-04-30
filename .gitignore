@@ -1,3 +1,4 @@
 /weights
 debug_output.txt
 .env
+/__pycache__
