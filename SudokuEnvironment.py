@@ -237,7 +237,7 @@ class SudokuEnvironment():
         all_available_actions_list = [tuple(action.numpy()) for action in all_available_actions]
 
         #print_debug_message(f"Board state:\n{board_state}")
-        print_debug_message(f"All available actions: {all_available_actions_list}")
+        #print_debug_message(f"All available actions: {all_available_actions_list}")
 
         return all_available_actions_list
 

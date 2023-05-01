@@ -77,7 +77,7 @@ class SudokuTrainer():
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
                     msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
-                    print_debug_message(msg3)
+                    #print_debug_message(msg3)
 
                     if done or self.current_puzzle_steps == allowed_steps - 1:
                         print("hit done/self.current_puzzle_steps max block train")
@@ -93,8 +93,7 @@ class SudokuTrainer():
                         exploration_rate = exploration_rate.numpy().item()
                     msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
                     print(msg3)
-                    with open("debug_output.txt", "a") as f:
-                        f.write(msg3)
+                    print_debug_message(msg3)
 
                     self.total_steps += 1
                     self.current_puzzle_steps += 1
