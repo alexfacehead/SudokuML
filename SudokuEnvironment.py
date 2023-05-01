@@ -54,29 +54,33 @@ class SudokuEnvironment():
     def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool, bool]:
         row, col, num = action
         is_valid = self.is_valid_move(row, col, num, suppress=False)
-        status = self.is_solved()
 
         if self.board[row, col] != 0 or (action not in all_available_actions and action not in valid_actions):
             self.incorrect_moves_count += 1
             done = self.incorrect_moves_count >= self.max_incorrect_moves
             reward = self.get_reward(action, valid_actions)
             next_state = tf.identity(self.board)
+            status = False
 
             return next_state, reward, done, status
-        
+
         reward = self.get_reward(action, valid_actions)
         if is_valid:
             indices = tf.convert_to_tensor([[row, col]])
             updates = tf.convert_to_tensor([num])
             self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
-            done = status
+
         else:
             self.incorrect_moves_count += 1
-            done = self.incorrect_moves_count >= self.max_incorrect_moves
 
+        status = self.is_solved()
+        done = self.incorrect_moves_count >= self.max_incorrect_moves or status
+        if status:
+            reward += self.REWARD_DICT["puzzle_solved"]
+            print_debug_message("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
         next_state = tf.identity(self.board)
-
-        msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward) + ", Done: " + str(done)
+        #msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward)
+        msg2 = "Done: " + str(done)
         print_debug_message(msg2)
 
         return next_state, reward, done, status
@@ -138,8 +142,9 @@ class SudokuEnvironment():
                         
         for row in range(0, 9, 3):
             for col in range(0, 9, 3):
-                box = [self.board[row + i, col + j] for i in range(3) for j in range(3)]
-                unique_box_count = tf.reduce_sum(tf.cast(tf.math.bincount(tf.reshape(box, (-1,)), minlength=10)[1:] > 0, dtype=tf.int32))
+                box = tf.slice(self.board, [row, col], [3, 3])
+                box_flat = tf.reshape(box, (-1,))
+                unique_box_count = tf.reduce_sum(tf.cast(tf.math.bincount(box_flat, minlength=10)[1:] > 0, dtype=tf.int32))
                 if unique_box_count != 9:
                     return False
 
@@ -198,7 +203,7 @@ class SudokuEnvironment():
                     for num in range(1, 10):
                         if self.is_valid_move(row, col, num, suppress=True):
                             valid_actions.append((row, col, num))
-        #print_debug_message(f"Valid actions: {valid_actions}")
+        print_debug_message(f"Valid actions: {valid_actions}")
 
         return valid_actions
 
@@ -232,7 +237,7 @@ class SudokuEnvironment():
         all_available_actions_list = [tuple(action.numpy()) for action in all_available_actions]
 
         #print_debug_message(f"Board state:\n{board_state}")
-        #print_debug_message(f"All available actions: {all_available_actions_list}")
+        print_debug_message(f"All available actions: {all_available_actions_list}")
 
         return all_available_actions_list
 

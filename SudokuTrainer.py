@@ -37,7 +37,7 @@ class SudokuTrainer():
                 avg_reward, total_solved = self.evaluate(num_tests)
                 total_msg_formatted = str(total_solved) + " / " + str(num_tests)
                 print(total_msg_formatted)
-                print(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
+                print(f"Evaluation: Average reward over {num_tests} episodes: {avg_reward}")
                 print_debug_message(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
                 print_debug_message(total_msg_formatted)
             
@@ -65,19 +65,23 @@ class SudokuTrainer():
                     if action is None:
                         break
                     next_state, reward, done, is_solved = self.environment.step(action, valid_actions, all_available_actions)
+                    if is_solved:
+                        print("Finished puzzle.")
+                        solved_puzzles += 1
+                        break
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
                     # new
                     self.environment.board = state
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
-                    msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) #"\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
+                    msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
+                    print_debug_message(msg3)
 
                     if done or self.current_puzzle_steps == allowed_steps - 1:
+                        print("hit done/self.current_puzzle_steps max block train")
                         break
-                    if is_solved:
-                        solved_puzzles += 1
 
                     self.agent.replay(batch_size)
 
@@ -96,8 +100,6 @@ class SudokuTrainer():
                     self.current_puzzle_steps += 1
 
                 self.episode_rewards.append(episode_reward)
-                if is_solved:
-                    solved_puzzles += 1  # Increment solved puzzles counter
 
                 # Print the number of solved puzzles for every 20 puzzles
                 if puzzle_counter % 20 == 0:

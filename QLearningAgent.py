@@ -59,7 +59,7 @@ class QLearningAgent():
             self.target_model = self.create_q_network()
             self.update_target_q_network()
 
-    # Generalizable method
+# Generalizable method
     def _make_model(self, conv_layers: int, conv_filters: List[int], dense_layers: int, dense_units: List[int]) -> tf.keras.Model:
         """Make a generic model with convolutional and dense layers.
 
@@ -121,6 +121,7 @@ class QLearningAgent():
         Returns:
             A tuple of the form (row, col, num) representing the chosen action.
         """
+        
         print_debug_message(f"State:\n{state}")
         print_debug_message(f"Valid actions: {valid_actions}")
         print_debug_message(f"All available actions: {all_available_actions}")
@@ -130,8 +131,6 @@ class QLearningAgent():
                 return None  # Return a special action (e.g., None) when there are no available actions
             return self.explore(all_available_actions)  # Explore using all_available_actions
         else:
-            if not valid_actions:
-                return None
             return self.exploit(state, valid_actions)  # Exploit using valid_actions
 
     
@@ -349,6 +348,17 @@ class QLearningAgent():
         """
         self.exploration_rate = rate
 
+    def decay_exploration_rate(self, step: int):
+        """Decay the exploration rate according to the exponential decay schedule.
+
+        Args:
+            step: An integer indicating the current step.
+
+        Returns:
+            None
+        """
+        self.exploration_rate = self.exploration_decay_schedule(step)
+    
     def reset_exploration_rate(self) -> None:
         """Reset exploration rate according to the original value.
 
@@ -359,18 +369,6 @@ class QLearningAgent():
             None
         """
         self.exploration_rate = self.initial_exploration_rate
-
-
-    def decay_exploration_rate(self, step: int) -> None:
-        """Decay the exploration rate according to the exponential decay schedule.
-
-        Args:
-            step: An integer indicating the current step.
-
-        Returns:
-            None
-        """
-        self.exploration_rate = self.exploration_decay_schedule(step)
 
 def format_action_tuple(action_tuple : Tuple[int, int, int]) -> str:
         return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"
