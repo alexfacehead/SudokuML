@@ -30,15 +30,16 @@ class SudokuTrainer():
             print(msg1)
             with open("debug_output.txt", "a") as f:
                 f.write(msg1)
-            
             # Only by default evaluate after one epoch, or if the force flag is used
             if force or epoch > 0:
                 num_tests = 5
                 avg_reward, total_solved = self.evaluate(num_tests)
+                if total_solved % 5 == 0: # Keep a running count of only the last 5
+                    total_solved = 0
                 total_msg_formatted = str(total_solved) + " / " + str(num_tests)
                 print(total_msg_formatted)
-                print(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
-                print_debug_message(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
+                print(f"Evaluation: Average reward over {num_tests} episodes: {avg_reward}")
+                print_debug_message(f"Evaluation: Average reward over {num_tests} episodes: {avg_reward}")
                 print_debug_message(total_msg_formatted)
             
             puzzles = self.data_loader.get_puzzles()
@@ -63,8 +64,11 @@ class SudokuTrainer():
                     all_available_actions = self.environment.get_all_available_actions(state)
                     action = self.agent.choose_action(state, valid_actions, all_available_actions)
                     if action is None:
-                        continue
+                        break
                     next_state, reward, done, is_solved = self.environment.step(action, valid_actions, all_available_actions)
+                    if is_solved:
+                        solved_puzzles += 1
+                        break
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
@@ -94,8 +98,6 @@ class SudokuTrainer():
                     self.current_puzzle_steps += 1
 
                 self.episode_rewards.append(episode_reward)
-                if is_solved:
-                    solved_puzzles += 1  # Increment solved puzzles counter
 
                 # Print the number of solved puzzles for every 20 puzzles
                 if puzzle_counter % 20 == 0:
@@ -105,6 +107,7 @@ class SudokuTrainer():
 
             print("Saving weights for epoch " + str(epoch))
             self.agent.save_weights()
+            self.agent.reset_exploration_rate()
         return self.episode_rewards
 
     def evaluate(self, episodes: int) -> float:
@@ -126,9 +129,16 @@ class SudokuTrainer():
                 episode_reward += reward
                 state = next_state
                 if is_solved:
+                    print_debug_message("Increment solved from evaluate")
                     total_solved += 1
 
             episode_rewards[i].assign(episode_reward)
 
-        print_debug_message("Evaluation results:\nEpisode rewards: " + str(episode_rewards))
+        print_res = format_rewards(episode_rewards, episodes)
+        print(print_res)
+        print_debug_message(print_res)
         return tf.reduce_mean(episode_rewards), total_solved
+    
+def format_rewards(episode_rewards, episodes):
+    formatted_rewards = '\n'.join([f"Episode {i+1}: {reward}" for i, reward in zip(range(episodes), episode_rewards.numpy())])
+    return formatted_rewards

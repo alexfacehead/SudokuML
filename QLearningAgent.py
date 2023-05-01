@@ -38,6 +38,7 @@ class QLearningAgent():
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
+        self.initial_exploration_rate = self.exploration_rate
         self.tpu_strategy = tpu_strategy
         self.memory = deque(maxlen=max_memory_size)
         self.file_path = file_path
@@ -120,7 +121,6 @@ class QLearningAgent():
         Returns:
             A tuple of the form (row, col, num) representing the chosen action.
         """
-        
         print_debug_message(f"State:\n{state}")
         print_debug_message(f"Valid actions: {valid_actions}")
         print_debug_message(f"All available actions: {all_available_actions}")
@@ -144,26 +144,6 @@ class QLearningAgent():
         """
         shuffled_actions = tf.random.shuffle(available_actions)
         return tuple(tf.gather(shuffled_actions, 0))
-
-    def exploit_old(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
-        """Choose an action based on the Q-values from the Q-network.
-
-        Args:
-            state: A tensor of shape (9, 9, 1) representing the current board state.
-            available_actions: A list of tuples of the form (row, col, num) representing the possible actions.
-
-        Returns:
-            A tuple of the form (row, col, num) representing the chosen action.
-        """
-        q_values = self.model.predict(tf.reshape(state, (1, 9, 9, 1)))
-        q_values = tf.reshape(q_values, (9, 9, 9))
-        mask = tf.zeros((9, 9, 9))
-        for action in available_actions:
-            index = action[0] * 9 * 9 + action[1] * 9 + (action[2] - 1)  # Convert the 3D index to 1D index
-            mask = mask + tf.reshape(tf.one_hot(index, 9 * 9 * 9), (9, 9, 9))
-        masked_q_values = q_values * mask
-        best_action = tf.unravel_index(tf.cast(tf.argmax(tf.reshape(masked_q_values, (-1,))), dtype=tf.int32), masked_q_values.shape)
-        return tuple(best_action)
 
     def exploit(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
         print_debug_message("Choosing to exploit")
@@ -367,7 +347,19 @@ class QLearningAgent():
         """
         self.exploration_rate = rate
 
-    def decay_exploration_rate(self, step: int):
+    def reset_exploration_rate(self) -> None:
+        """Reset exploration rate according to the original value.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        self.exploration_rate = self.initial_exploration_rate
+
+
+    def decay_exploration_rate(self, step: int) -> None:
         """Decay the exploration rate according to the exponential decay schedule.
 
         Args:

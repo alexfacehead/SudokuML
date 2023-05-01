@@ -9,6 +9,7 @@ from DataLoader import DataLoader
 import argparse
 from dotenv import load_dotenv
 import itertools
+from QLearningAgent import print_debug_message
 
 load_dotenv()
 google_colab_path = os.getenv("google_colab_path")
@@ -30,7 +31,6 @@ def __main__():
         'discount_factor': [0.9, 0.99, 0.999],
         'exploration_rate': [0.5, 1.0],
         'exploration_decay': [0.95, 0.99, 0.995],
-        'epochs': [5, 10, 20],
         'allowed_steps': [50, 100, 200],
         'batch_size': [10, 20, 40],
         'target_update_interval': [50, 100, 200],
@@ -86,11 +86,11 @@ def __main__():
 
     easy_puzzles = data_loader_easy.get_puzzles()
     with strategy.scope():
-        env = SudokuEnvironment(easy_puzzles, 10) # pass the list of puzzles to the environment
-        agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
-        trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
+        #env = SudokuEnvironment(easy_puzzles, 10) # pass the list of puzzles to the environment
+        #agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
+        #trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
 
-        epochs = 10
+        epochs = 5
         allowed_steps = 100
         batch_size = 20
         target_update_interval = 100
@@ -99,10 +99,10 @@ def __main__():
         best_hyperparameters, best_performance = grid_search(hyperparameter_space, strategy, data_loader_easy, decay_steps, max_memory_size, file_path, force)
         print("Grid search results: Best hyperparameters found: ", best_hyperparameters)
         print("Grid search results: Best performance: ", best_performance)
-        trainer_easy.print_debug_message("Grid search results: Best hyperparameters found: {}".format(best_hyperparameters))
-        trainer_easy.print_debug_message("Grid search results: Best performance: {}".format(best_performance))
+        print_debug_message("Grid search results: Best hyperparameters found: {}".format(best_hyperparameters))
+        print_debug_message("Grid search results: Best performance: {}".format(best_performance))
         # Standard training loop with predefined params
-        #trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval, force)
+        #performance = trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval, force)
 
 def train_and_tune(hyperparameters, strategy, data_loader, decay_steps, max_memory_size, file_path, force):
     easy_puzzles = data_loader.get_puzzles()[:hyperparameters['number_of_puzzles']]
@@ -112,9 +112,12 @@ def train_and_tune(hyperparameters, strategy, data_loader, decay_steps, max_memo
         trainer_easy = SudokuTrainer(agent, env, data_loader)
 
         # You may need to modify the trainer to return the performance metric
-        performance = trainer_easy.train(hyperparameters['epochs'], hyperparameters['allowed_steps'], hyperparameters['batch_size'], hyperparameters['target_update_interval'], force)
+        episode_rewards = trainer_easy.train(1, hyperparameters['allowed_steps'], hyperparameters['batch_size'], hyperparameters['target_update_interval'], force)
 
-    return performance
+    # Calculate the average performance
+    avg_performance = sum(episode_rewards) / len(episode_rewards)
+
+    return avg_performance
 
 def grid_search(hyperparameter_space, strategy, data_loader, decay_steps, max_memory_size, file_path, force):
     keys, values = zip(*hyperparameter_space.items())

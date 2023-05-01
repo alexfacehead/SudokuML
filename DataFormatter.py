@@ -1,6 +1,13 @@
 import argparse
 import random
 
+
+"""
+python3 DataFormatter.py --base_file /home/dev/sudoku/resources/sudoku_large.csv \
+                         --output_file /home/dev/SudokuML/resources/sudoku_mini_easy.csv \
+                         --num_lines 100 \
+                         --difficulty 8
+"""
 def insert_zeros(s, num_zeros):
     existing_zero_positions = {i for i, char in enumerate(s) if char == '0'}
 
