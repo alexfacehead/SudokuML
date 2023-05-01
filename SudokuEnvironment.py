@@ -2,21 +2,20 @@ from typing import List, Tuple, Optional
 import tensorflow as tf
 from QLearningAgent import print_debug_message
 from QLearningAgent import format_action_tuple
-import numpy as np
 
 class SudokuEnvironment():
     # tensor
-    def __init__(self, sudoku_boards: tf.Tensor, max_incorrect_moves: int=5):
-        """Initialize the sudoku environment with the tensor of puzzles and the maximum number of incorrect moves.
+    def __init__(self, sudoku_boards: List[tf.Tensor], max_incorrect_moves: int=5):
+        """Initialize the sudoku environment with the list of puzzles and the maximum number of incorrect moves.
 
         Args:
-            sudoku_boards: A tensor of shape (n, 9, 9) representing the puzzles with some numbers replaced with zeros.
+            sudoku_boards: A list of tensors of shape (9, 9) representing the puzzles with some numbers replaced with zeros.
             max_incorrect_moves: An integer indicating the maximum number of incorrect moves allowed before terminating the episode.
 
         Returns:
             None
         """
-        self.sudoku_boards = sudoku_boards # store the tensor of puzzles
+        self.sudoku_boards = sudoku_boards # store the list of puzzles
         self.board = None # initialize the board as None
         self.max_incorrect_moves = max_incorrect_moves
         self.incorrect_moves_count = 0
@@ -55,6 +54,7 @@ class SudokuEnvironment():
     def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool, bool]:
         row, col, num = action
         is_valid = self.is_valid_move(row, col, num, suppress=False)
+        status = self.is_solved()
 
         if self.board[row, col] != 0 or (action not in all_available_actions and action not in valid_actions):
             self.incorrect_moves_count += 1
@@ -62,23 +62,18 @@ class SudokuEnvironment():
             reward = self.get_reward(action, valid_actions)
             next_state = tf.identity(self.board)
 
-            return next_state, reward, done, False  # Since the action is invalid or board is not empty, it can't be solved at this step
-            
+            return next_state, reward, done, status
+        
         reward = self.get_reward(action, valid_actions)
         if is_valid:
             indices = tf.convert_to_tensor([[row, col]])
             updates = tf.convert_to_tensor([num])
             self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
-
+            done = status
         else:
             self.incorrect_moves_count += 1
             done = self.incorrect_moves_count >= self.max_incorrect_moves
-            next_state = tf.identity(self.board)
 
-            return next_state, reward, done, False  # The action is not valid, so the board can't be solved at this step
-
-        status = self.is_solved()  # Check if the board is solved after making the move
-        done = status
         next_state = tf.identity(self.board)
 
         msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward) + ", Done: " + str(done)
@@ -131,27 +126,27 @@ class SudokuEnvironment():
         Returns:
             A boolean indicating whether the board is solved or not.
         """
-        board = self.board.numpy()
-        all_nums = set(range(1, 10))
-
         for row in range(9):
-            if set(board[row]) != all_nums:
+            unique_row_count = tf.reduce_sum(tf.cast(tf.math.bincount(self.board[row], minlength=10)[1:] > 0, dtype=tf.int32))
+            if unique_row_count != 9:
                 return False
-
+                    
         for col in range(9):
-            if set(board[:, col]) != all_nums:
+            unique_col_count = tf.reduce_sum(tf.cast(tf.math.bincount(self.board[:, col], minlength=10)[1:] > 0, dtype=tf.int32))
+            if unique_col_count != 9:
                 return False
-
+                        
         for row in range(0, 9, 3):
             for col in range(0, 9, 3):
-                box = board[row:row+3, col:col+3].flatten()
-                if set(box) != all_nums:
+                box = [self.board[row + i, col + j] for i in range(3) for j in range(3)]
+                unique_box_count = tf.reduce_sum(tf.cast(tf.math.bincount(tf.reshape(box, (-1,)), minlength=10)[1:] > 0, dtype=tf.int32))
+                if unique_box_count != 9:
                     return False
 
         print_debug_message("Solved.")
+
         return True
 
-    
     def get_valid_actions(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
         # Find the indices of the zeros in the board state
         zero_indices = tf.where(tf.equal(board_state, 0))
@@ -185,6 +180,7 @@ class SudokuEnvironment():
         
         return valid_actions_list
 
+
     def get_valid_actions_old(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
         """Get the list of available valid actions for a given board state.
 
@@ -202,7 +198,7 @@ class SudokuEnvironment():
                     for num in range(1, 10):
                         if self.is_valid_move(row, col, num, suppress=True):
                             valid_actions.append((row, col, num))
-        print_debug_message(f"Valid actions: {valid_actions}")
+        #print_debug_message(f"Valid actions: {valid_actions}")
 
         return valid_actions
 
@@ -236,10 +232,9 @@ class SudokuEnvironment():
         all_available_actions_list = [tuple(action.numpy()) for action in all_available_actions]
 
         #print_debug_message(f"Board state:\n{board_state}")
-        print_debug_message(f"All available actions: {all_available_actions_list}")
+        #print_debug_message(f"All available actions: {all_available_actions_list}")
 
         return all_available_actions_list
-
 
     def get_all_available_actions_old(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
         """Get the list of all available actions for a given board state.
@@ -263,7 +258,7 @@ class SudokuEnvironment():
 
         return all_available_actions
 
-    def get_reward_old(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]]) -> float:
+    def get_reward(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]]) -> float:
         row, col, num = action
 
         if self.board[row, col] != 0:
@@ -283,46 +278,6 @@ class SudokuEnvironment():
 
         # Ensure row_col_box_bonus doesn't exceed 5
         row_col_box_bonus = min(row_col_box_bonus, 5)
-
-        is_solved = self.is_solved()
-
-        if action in valid_actions:
-            reward = self.REWARD_DICT["valid_move"] + row_col_box_bonus
-        else:
-            reward = -5 + row_col_box_bonus
-
-        if is_solved:
-            reward += self.REWARD_DICT["puzzle_solved"]
-            print_debug_message("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
-        if row_col_box_bonus > 0:
-            print_debug_message("row_col_box_bonus: " + str(row_col_box_bonus))
-
-        return reward
-
-    def get_reward(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]]) -> float:
-        row, col, num = action
-
-        if self.board[row, col] != 0:
-            return self.REWARD_DICT["invalid_move"]  # Penalty for attempting to place a number in an already filled cell
-
-        # Update the board temporarily
-        temp_board = tf.tensor_scatter_nd_update(self.board, [[row, col]], [num])
-
-        row_values = temp_board[row]
-        col_values = temp_board[:, col]
-        box_row_start = (row // 3) * 3
-        box_col_start = (col // 3) * 3
-        box_indices = tf.stack([box_row_start + tf.range(3), box_col_start + tf.range(3)], axis=1)
-        box_values = tf.gather_nd(temp_board, box_indices)
-
-        row_filled = tf.reduce_all(tf.math.equal(tf.math.reduce_sum(tf.one_hot(row_values, 10), axis=0)[1:], 1))
-        col_filled = tf.reduce_all(tf.math.equal(tf.math.reduce_sum(tf.one_hot(col_values, 10), axis=0)[1:], 1))
-        box_filled = tf.reduce_all(tf.math.equal(tf.math.reduce_sum(tf.one_hot(box_values, 10), axis=0)[1:], 1))
-
-        row_col_box_bonus = tf.cast(tf.math.reduce_sum(tf.cast([row_filled, col_filled, box_filled], dtype=tf.int32)), dtype=tf.float32) * self.REWARD_DICT["row_col_box_completed"]
-
-        # Ensure row_col_box_bonus doesn't exceed 5
-        row_col_box_bonus = tf.minimum(row_col_box_bonus, 5)
 
         is_solved = self.is_solved()
 

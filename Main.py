@@ -59,7 +59,7 @@ def __main__():
 
     learning_rate = 0.1          # The learning rate for the Q-Learning algorithm
     discount_factor = 0.99       # The discount factor for future rewards
-    exploration_rate = 1.0       # Initial exploration rate (epsilon) for the epsilon-greedy strategy
+    exploration_rate = 0.5       # Initial exploration rate (epsilon) for the epsilon-greedy strategy
     exploration_decay = 0.995    # Exploration rate decay factor
 
     # Initialize the TPU strategy
@@ -82,13 +82,13 @@ def __main__():
 
     # Change if you want different puzzles!
     data_loader_easy = DataLoader("./resources/sudoku_mini_easy.csv", 8)
-    data_loader_medium = DataLoader("./resources/sudoku_mini_easy.csv", 8)
+    data_loader_medium = DataLoader("./resources/sudoku_mini_small.csv", 12)
 
     easy_puzzles = data_loader_easy.get_puzzles()
     with strategy.scope():
-        #env = SudokuEnvironment(easy_puzzles, 10) # pass the list of puzzles to the environment
-        #agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
-        #trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
+        env = SudokuEnvironment(easy_puzzles, 10) # pass the list of puzzles to the environment
+        agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
+        trainer_easy = SudokuTrainer(agent, env, data_loader_easy)
 
         epochs = 5
         allowed_steps = 100
@@ -96,13 +96,13 @@ def __main__():
         target_update_interval = 100
         
 
-        best_hyperparameters, best_performance = grid_search(hyperparameter_space, strategy, data_loader_easy, decay_steps, max_memory_size, file_path, force)
-        print("Grid search results: Best hyperparameters found: ", best_hyperparameters)
-        print("Grid search results: Best performance: ", best_performance)
-        print_debug_message("Grid search results: Best hyperparameters found: {}".format(best_hyperparameters))
-        print_debug_message("Grid search results: Best performance: {}".format(best_performance))
+        #best_hyperparameters, best_performance = grid_search(hyperparameter_space, strategy, data_loader_easy, decay_steps, max_memory_size, file_path, force)
+        #print("Grid search results: Best hyperparameters found: ", best_hyperparameters)
+        #print("Grid search results: Best performance: ", best_performance)
+        #print_debug_message("Grid search results: Best hyperparameters found: {}".format(best_hyperparameters))
+        #print_debug_message("Grid search results: Best performance: {}".format(best_performance))
         # Standard training loop with predefined params
-        #performance = trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval, force)
+        performance = trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval, force)
 
 def train_and_tune(hyperparameters, strategy, data_loader, decay_steps, max_memory_size, file_path, force):
     easy_puzzles = data_loader.get_puzzles()[:hyperparameters['number_of_puzzles']]

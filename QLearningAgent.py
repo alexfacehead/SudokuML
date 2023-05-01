@@ -130,6 +130,8 @@ class QLearningAgent():
                 return None  # Return a special action (e.g., None) when there are no available actions
             return self.explore(all_available_actions)  # Explore using all_available_actions
         else:
+            if not valid_actions:
+                return None
             return self.exploit(state, valid_actions)  # Exploit using valid_actions
 
     
