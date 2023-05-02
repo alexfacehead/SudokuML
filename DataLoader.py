@@ -75,6 +75,3 @@ class DataLoader():
         self.current_index += 1
 
         return random_board
-
-
-

@@ -58,7 +58,7 @@ The script will execute the Sudoku reinforcement learning program using the spec
 
 # Training Guide
 
-THIS DOES NOT COME WITH A TRAINED MODEL. They are ~70MB large and not worth uploading when you can train this in 5 mins.
+One trained model included in `./resources`!
 
 * It's probably best to start your model out with a low-difficulty puzzle
 * To make a puzzle, use the `DataLoader` object. Difficulty is a simple `int` between `1-18` and represents the number of zeros that your agent will have to fill in. 
