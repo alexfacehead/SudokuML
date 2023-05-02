@@ -53,37 +53,29 @@ class SudokuEnvironment():
     
     def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool, bool]:
         row, col, num = action
-        is_valid = self.is_valid_move(row, col, num, suppress=False)
+        is_solved = self.is_solved()
 
-        if self.board[row, col] != 0 or (action not in all_available_actions and action not in valid_actions):
+        if self.board[row, col] != 0 or action not in all_available_actions:
             self.incorrect_moves_count += 1
             done = self.incorrect_moves_count >= self.max_incorrect_moves
-            reward = self.get_reward(action, valid_actions)
+            reward = self.get_reward(action)
             next_state = tf.identity(self.board)
-            status = False
 
-            return next_state, reward, done, status
+            return next_state, reward, done
+        done = self.incorrect_moves_count >= self.max_incorrect_moves
+        reward = self.get_reward(action)
 
-        reward = self.get_reward(action, valid_actions)
-        if is_valid:
-            indices = tf.convert_to_tensor([[row, col]])
-            updates = tf.convert_to_tensor([num])
-            self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
+        indices = tf.convert_to_tensor([[row, col]])
+        updates = tf.convert_to_tensor([num])
+        self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
 
-        else:
-            self.incorrect_moves_count += 1
-
-        status = self.is_solved()
-        done = self.incorrect_moves_count >= self.max_incorrect_moves or status
-        if status:
+        
+        if is_solved:
             reward += self.REWARD_DICT["puzzle_solved"]
             print_debug_msg("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
         next_state = tf.identity(self.board)
-        #msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward)
-        msg2 = "Done: " + str(done)
-        print_debug_msg(msg2)
 
-        return next_state, reward, done, status
+        return next_state, reward, done
 
     def render(self):
         """Print the board to the standard output.
@@ -149,6 +141,7 @@ class SudokuEnvironment():
                     return False
 
         print_debug_msg("Solved.")
+        print("Solved.")
 
         return True
 
@@ -220,9 +213,9 @@ class SudokuEnvironment():
         return all_available_actions_list
 
     
-    def get_reward(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]]) -> float:
+    def get_reward(self, action: Tuple[int, int, int]) -> float:
         row, col, num = action
-
+        valid_actions = self.get_valid_actions(self.board)
         if self.board[row, col] != 0:
             return self.REWARD_DICT["invalid_move"]  # Penalty for attempting to place a number in an already filled cell
 

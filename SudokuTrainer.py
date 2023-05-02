@@ -51,7 +51,7 @@ class SudokuTrainer():
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0
             for sudoku_board in puzzles:
-                if puzzle_counter % 10 == 0 and puzzle_counter != 0:
+                if puzzle_counter % 100 == 0 and puzzle_counter != 0:
                     threading.Thread(target=show_popup, args=("50 puzzles completed",)).start()
                 str1 = "Board: " + str(sudoku_board) + "\n"
                 print(str1)
@@ -67,13 +67,25 @@ class SudokuTrainer():
                 episode_reward = 0
 
                 for _ in range(allowed_steps):
+                    is_solved = self.environment.is_solved()
                     self.agent.decay_exploration_rate(self.total_steps)
                     valid_actions = self.environment.get_valid_actions(state)
+                    if not valid_actions:
+                        print_debug_msg("FINAL STATE: " + str(self.environment.board))
+                        is_solved = self.environment.is_solved()
+                        if is_solved:
+                            print_debug_msg("Caught solved")
+                            solved_puzzles += 1
+                        break
                     all_available_actions = self.environment.get_all_available_actions(state)
                     action = self.agent.choose_action(state, valid_actions, all_available_actions)
-                    if action is None:
+                    if action is None or not all_available_actions:
                         break
-                    next_state, reward, done, is_solved = self.environment.step(action, valid_actions, all_available_actions)
+                    next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
+                    
+                    if done:
+                        break
+                    is_solved = self.environment.is_solved()
                     if is_solved:
                         "Finishing episode reward: " + str(episode_reward) + "\n"
                         solved_puzzles += 1
@@ -120,7 +132,7 @@ class SudokuTrainer():
         return self.episode_rewards
 
     def evaluate(self, episodes: int) -> float:
-        print_debug_msg("Begin evaluation block!", force=True)
+        print_debug_msg("Begin evaluation block!")
         episode_rewards = tf.Variable(tf.zeros([episodes], dtype=tf.float32))
         total_solved = 0
         for i in range(episodes):
@@ -134,15 +146,20 @@ class SudokuTrainer():
                 valid_actions = self.environment.get_valid_actions(state)
                 all_available_actions = self.environment.get_all_available_actions(state)
                 action = self.agent.choose_action(state, valid_actions, all_available_actions, train=False)
-                next_state, reward, done, is_solved = self.environment.step(action, valid_actions, all_available_actions)
+                is_solved = self.environment.is_solved()
+                if action is None or not all_available_actions or is_solved:
+                    print_debug_msg("Is solved?:" + str(is_solved))
+                    total_solved += 1
+                    if total_solved > episodes:
+                        total_solved = total_solved / 2
+                    break
+                next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
                 episode_reward += reward
                 state = next_state
-                if is_solved:
-                    total_solved += 1
 
             episode_rewards[i].assign(episode_reward)
 
-        print_debug_msg("Evaluation results:\nEpisode rewards: " + str(episode_rewards), force=True)
+        print_debug_msg("Evaluation results:\nEpisode rewards: " + str(episode_rewards))
         return tf.reduce_mean(episode_rewards), total_solved
     
 def show_popup(message: str):

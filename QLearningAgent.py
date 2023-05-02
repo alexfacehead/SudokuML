@@ -127,10 +127,12 @@ class QLearningAgent():
         print_debug_msg(f"All available actions: {all_available_actions}")
         
         if train and tf.random.uniform(()) <= self.exploration_rate:
-            if not all_available_actions or not valid_actions:  # Check for all_available_actions
+            if not all_available_actions:  # Check for all_available_actions
                 return None  # Return a special action (e.g., None) when there are no available actions
             return self.explore(all_available_actions)  # Explore using all_available_actions
         else:
+            if not all_available_actions:  # Check for all_available_actions
+                return None  # Return a special action (e.g., None) when there are no available actions
             return self.exploit(state, valid_actions)  # Exploit using valid_actions
 
     

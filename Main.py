@@ -91,7 +91,7 @@ def __main__():
     with strategy.scope():
         env = SudokuEnvironment(easy_puzzles, max_incorrect_moves=20) # pass the list of puzzles to the environment
         agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
-        trainer_easy = SudokuTrainer(agent, env, data_loader_easy_3)
+        trainer_easy = SudokuTrainer(agent, env, data_loader_easy_2)
 
         epochs = 10
         allowed_steps = 100
