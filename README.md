@@ -14,10 +14,10 @@
 # Usage
 Please setup your `env` file first and foremost, and rename it to `.env`
 
-`google_colab_path=/path/to/colab/optional
-local_path=/path/to/workspace/here
-print_debug=False
-debug_level=3`
+`google_colab_path=/path/to/colab/optional`
+`local_path=/path/to/workspace/here`
+`print_debug=False`
+`debug_level=3`
 
 *IMPORTANT:* Please use debug_level=1 if you want your output printed, debug_level=2 if you want it written to `debug_output.txt` in your project directory, or debug_level=3 if you want it to run silently except for some initialization methods, keras progress and evaluation.
 
