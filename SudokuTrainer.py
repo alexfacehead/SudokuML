@@ -120,7 +120,7 @@ class SudokuTrainer():
         return self.episode_rewards
 
     def evaluate(self, episodes: int) -> float:
-        print_debug_msg("Begin evaluation block!")
+        print_debug_msg("Begin evaluation block!", force=True)
         episode_rewards = tf.Variable(tf.zeros([episodes], dtype=tf.float32))
         total_solved = 0
         for i in range(episodes):
@@ -142,7 +142,7 @@ class SudokuTrainer():
 
             episode_rewards[i].assign(episode_reward)
 
-        print_debug_msg("Evaluation results:\nEpisode rewards: " + str(episode_rewards))
+        print_debug_msg("Evaluation results:\nEpisode rewards: " + str(episode_rewards), force=True)
         return tf.reduce_mean(episode_rewards), total_solved
     
 def show_popup(message: str):

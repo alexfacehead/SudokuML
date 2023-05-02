@@ -12,7 +12,16 @@
 * Grid search over whatever seach space you want for hyperparameters, so you don't have to decide =)
 
 # Usage
+Please setup your `env` file first and foremost, and rename it to `.env`
 
+`google_colab_path=/path/to/colab/optional
+local_path=/path/to/workspace/here
+print_debug=False
+debug_level=3`
+
+*IMPORTANT:* Please use debug_level=1 if you want your output printed, debug_level=2 if you want it written to `debug_output.txt` in your project directory, or debug_level=3 if you want it to run silently except for some initialization methods, keras progress and evaluation.
+
+When you're done filling in the options 
 1. Install the required dependencies:
 
 `
@@ -48,6 +57,9 @@ If you are only using one or the other, that's ok.
 The script will execute the Sudoku reinforcement learning program using the specified configurations in the main code. It will read the `.env` file to determine the appropriate file paths for Google Colab or local environments.
 
 # Training Guide
+
+THIS DOES NOT COME WITH A TRAINED MODEL. They are ~70MB large and not worth uploading when you can train this in 5 mins.
+
 * It's probably best to start your model out with a low-difficulty puzzle
 * To make a puzzle, use the `DataLoader` object. Difficulty is a simple `int` between `1-18` and represents the number of zeros that your agent will have to fill in. 
 * Use the resources folder, or create your own dataset using the `kaggle` sudoku dataset: https://www.kaggle.com/datasets/bryanpark/sudoku

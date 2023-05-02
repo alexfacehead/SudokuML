@@ -379,11 +379,12 @@ class QLearningAgent():
 def format_action_tuple(action_tuple : Tuple[int, int, int]) -> str:
         return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"
 
-def print_debug_msg(message: str) -> None:
+def print_debug_msg(message: str, force=False) -> None:
     if int(debug_level) < 3:
-        if print_debug:
+        if print_debug and debug_level <= 2 or force:
             print("Beginning debug output since debug=" + str(print_debug))
-            print(message)
+            if debug_level <= 1 or force:
+                print(message)
         else:
             with open("debug_output.txt", "a") as f:
                 f.write(message + "\n")
