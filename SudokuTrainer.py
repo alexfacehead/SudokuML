@@ -51,7 +51,7 @@ class SudokuTrainer():
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0
             for sudoku_board in puzzles:
-                if puzzle_counter % 50 == 0 and puzzle_counter != 0:
+                if puzzle_counter % 10 == 0 and puzzle_counter != 0:
                     threading.Thread(target=show_popup, args=("50 puzzles completed",)).start()
                 str1 = "Board: " + str(sudoku_board) + "\n"
                 print(str1)
