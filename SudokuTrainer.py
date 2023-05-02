@@ -3,7 +3,12 @@ import QLearningAgent
 import SudokuEnvironment
 import tensorflow as tf
 from typing import List
-from QLearningAgent import print_debug_message
+from QLearningAgent import print_debug_msg
+
+# Threading / popups
+import tkinter as tk
+from tkinter import messagebox
+import threading
 
 class SudokuTrainer():
     def __init__(self, agent: QLearningAgent, environment: SudokuEnvironment, data_loader: DataLoader):
@@ -24,6 +29,8 @@ class SudokuTrainer():
         self.current_puzzle_steps = 0
 
     def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int, force: bool) -> List[int]:
+        print_debug_msg("Attempting to load weights...")
+        self.agent.load_weights()
         solved_puzzles = 0  # Initialize solved puzzles counter
         for epoch in range(epochs):
             msg1 = "Epoch # " + str(epoch) + "\n"
@@ -31,22 +38,24 @@ class SudokuTrainer():
             with open("debug_output.txt", "a") as f:
                 f.write(msg1)
             
-            # Only by default evaluate after one epoch, or if the force flag is used
+            # Only by default evaluate AFTER the first epoch, or if the force flag is used
             if force or epoch > 0:
                 num_tests = 5
                 avg_reward, total_solved = self.evaluate(num_tests)
                 total_msg_formatted = str(total_solved) + " / " + str(num_tests)
                 print(total_msg_formatted)
                 print(f"Evaluation: Average reward over {num_tests} episodes: {avg_reward}")
-                print_debug_message(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
-                print_debug_message(total_msg_formatted)
+                print_debug_msg(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
+                print_debug_msg(total_msg_formatted)
             
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0
             for sudoku_board in puzzles:
+                if puzzle_counter % 50 == 0 and puzzle_counter != 0:
+                    threading.Thread(target=show_popup, args=("50 puzzles completed",)).start()
                 str1 = "Board: " + str(sudoku_board) + "\n"
                 print(str1)
-                QLearningAgent.print_debug_message(str1)
+                QLearningAgent.print_debug_msg(str1)
                 puzzle_counter += 1
                 msg2 = "Puzzle # " + str(puzzle_counter) + "\n"
                 print(msg2)
@@ -66,7 +75,7 @@ class SudokuTrainer():
                         break
                     next_state, reward, done, is_solved = self.environment.step(action, valid_actions, all_available_actions)
                     if is_solved:
-                        print("Finished puzzle.")
+                        "Finishing episode reward: " + str(episode_reward) + "\n"
                         solved_puzzles += 1
                         break
                     self.agent.remember(state, action, reward, next_state, done)
@@ -77,7 +86,7 @@ class SudokuTrainer():
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
                     msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
-                    #print_debug_message(msg3)
+                    #print_debug_msg(msg3)
 
                     if done or self.current_puzzle_steps == allowed_steps - 1:
                         print("hit done/self.current_puzzle_steps max block train")
@@ -93,7 +102,7 @@ class SudokuTrainer():
                         exploration_rate = exploration_rate.numpy().item()
                     msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
                     print(msg3)
-                    print_debug_message(msg3)
+                    print_debug_msg(msg3)
 
                     self.total_steps += 1
                     self.current_puzzle_steps += 1
@@ -103,7 +112,7 @@ class SudokuTrainer():
                 # Print the number of solved puzzles for every 20 puzzles
                 if puzzle_counter % 20 == 0:
                     print(f"Solved puzzles in the last 20: {solved_puzzles}")
-                    print_debug_message(f"Solved puzzles in the last 20: {solved_puzzles}")
+                    print_debug_msg(f"Solved puzzles in the last 20: {solved_puzzles}")
                     solved_puzzles = 0  # Reset the solved puzzles counter
 
             print("Saving weights for epoch " + str(epoch))
@@ -111,7 +120,7 @@ class SudokuTrainer():
         return self.episode_rewards
 
     def evaluate(self, episodes: int) -> float:
-        print_debug_message("Begin evaluation block!")
+        print_debug_msg("Begin evaluation block!")
         episode_rewards = tf.Variable(tf.zeros([episodes], dtype=tf.float32))
         total_solved = 0
         for i in range(episodes):
@@ -133,5 +142,11 @@ class SudokuTrainer():
 
             episode_rewards[i].assign(episode_reward)
 
-        print_debug_message("Evaluation results:\nEpisode rewards: " + str(episode_rewards))
+        print_debug_msg("Evaluation results:\nEpisode rewards: " + str(episode_rewards))
         return tf.reduce_mean(episode_rewards), total_solved
+    
+def show_popup(message: str):
+    root = tk.Tk()
+    root.withdraw()
+    messagebox.showinfo("Threshold Reached", message)
+    root.destroy()

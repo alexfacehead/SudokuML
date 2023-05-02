@@ -1,7 +1,7 @@
 from typing import List, Tuple, Optional
 import tensorflow as tf
-from QLearningAgent import print_debug_message
-from QLearningAgent import format_action_tuple
+from QLearningAgent import print_debug_msg
+import numpy as np
 
 class SudokuEnvironment():
     # tensor
@@ -77,11 +77,11 @@ class SudokuEnvironment():
         done = self.incorrect_moves_count >= self.max_incorrect_moves or status
         if status:
             reward += self.REWARD_DICT["puzzle_solved"]
-            print_debug_message("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
+            print_debug_msg("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
         next_state = tf.identity(self.board)
         #msg2 = "Step: Action: " + format_action_tuple(action) + ", Reward: " + str(reward)
         msg2 = "Done: " + str(done)
-        print_debug_message(msg2)
+        print_debug_msg(msg2)
 
         return next_state, reward, done, status
 
@@ -118,7 +118,7 @@ class SudokuEnvironment():
         
         msg7 = "Valid move determined."
         if not suppress:
-            print_debug_message(msg7)
+            print_debug_msg(msg7)
         return True
 
     def is_solved(self) -> bool:
@@ -148,7 +148,7 @@ class SudokuEnvironment():
                 if unique_box_count != 9:
                     return False
 
-        print_debug_message("Solved.")
+        print_debug_msg("Solved.")
 
         return True
 
@@ -185,28 +185,6 @@ class SudokuEnvironment():
         
         return valid_actions_list
 
-
-    def get_valid_actions_old(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
-        """Get the list of available valid actions for a given board state.
-
-        Args:
-            board_state: A tensor of shape (9, 9) representing the current board state.
-
-        Returns:
-            A list of tuples of the form (row, col, num) representing the possible actions.
-        """
-        valid_actions = []
-
-        for row in range(9):
-            for col in range(9):
-                if board_state[row, col] == 0:
-                    for num in range(1, 10):
-                        if self.is_valid_move(row, col, num, suppress=True):
-                            valid_actions.append((row, col, num))
-        print_debug_message(f"Valid actions: {valid_actions}")
-
-        return valid_actions
-
     def get_all_available_actions(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
         """Get the list of all available actions for a given board state.
 
@@ -236,33 +214,12 @@ class SudokuEnvironment():
         all_available_actions = tf.reshape(all_available_actions, [-1, 3])
         all_available_actions_list = [tuple(action.numpy()) for action in all_available_actions]
 
-        #print_debug_message(f"Board state:\n{board_state}")
-        #print_debug_message(f"All available actions: {all_available_actions_list}")
+        #print_debug_msg(f"Board state:\n{board_state}")
+        #print_debug_msg(f"All available actions: {all_available_actions_list}")
 
         return all_available_actions_list
 
-    def get_all_available_actions_old(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
-        """Get the list of all available actions for a given board state.
-
-        Args:
-            board_state: A tensor of shape (9, 9) representing the current board state.
-
-        Returns:
-            A list of tuples of the form (row, col, num) representing the possible actions.
-        """
-        all_available_actions = []
-
-        for row in range(9):
-            for col in range(9):
-                if board_state[row, col] == 0:
-                    for num in range(1, 10):
-                        all_available_actions.append((row, col, num))
-
-        #print_debug_message(f"Board state:\n{board_state}")
-        print_debug_message(f"All available actions: {all_available_actions}")
-
-        return all_available_actions
-
+    
     def get_reward(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]]) -> float:
         row, col, num = action
 
@@ -293,8 +250,8 @@ class SudokuEnvironment():
 
         if is_solved:
             reward += self.REWARD_DICT["puzzle_solved"]
-            print_debug_message("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
+            print_debug_msg("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
         if row_col_box_bonus > 0:
-            print_debug_message("row_col_box_bonus: " + str(row_col_box_bonus))
+            print_debug_msg("row_col_box_bonus: " + str(row_col_box_bonus))
 
         return reward

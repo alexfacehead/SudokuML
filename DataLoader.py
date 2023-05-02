@@ -1,7 +1,7 @@
 import tensorflow as tf
 import pandas as pd
 from typing import Union
-from QLearningAgent import print_debug_message
+from QLearningAgent import print_debug_msg
 
 class DataLoader():
     # str

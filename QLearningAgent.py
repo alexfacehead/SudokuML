@@ -122,9 +122,9 @@ class QLearningAgent():
             A tuple of the form (row, col, num) representing the chosen action.
         """
         
-        print_debug_message(f"State:\n{state}")
-        print_debug_message(f"Valid actions: {valid_actions}")
-        print_debug_message(f"All available actions: {all_available_actions}")
+        print_debug_msg(f"State:\n{state}")
+        print_debug_msg(f"Valid actions: {valid_actions}")
+        print_debug_msg(f"All available actions: {all_available_actions}")
         
         if train and tf.random.uniform(()) <= self.exploration_rate:
             if not all_available_actions:  # Check for all_available_actions
@@ -147,7 +147,7 @@ class QLearningAgent():
         return tuple(tf.gather(shuffled_actions, 0))
 
     def exploit(self, state: tf.Tensor, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
-        print_debug_message("Choosing to exploit")
+        print_debug_msg("Choosing to exploit")
         state = tf.expand_dims(state, axis=0)
         q_values = self.model(state)
         mask = tf.zeros_like(q_values)
@@ -232,8 +232,8 @@ class QLearningAgent():
         Done: {}
         Memory size: {}
         """.format(state, format_action_tuple(action), reward, next_state, done, len(self.memory))
-        if self.remember_count == 50:
-            print_debug_message(msg)
+        if self.remember_count == 10:
+            print_debug_msg(msg)
         self.remember_count = self.remember_count + 1
 
     def create_experience_batch(self, batch_size: int) -> tf.Tensor:
@@ -259,6 +259,11 @@ class QLearningAgent():
             reward_batch = tf.concat([reward_batch, tf.reshape(experience[2], (1, 1))], axis=0)
             next_state_batch = tf.concat([next_state_batch, tf.reshape(experience[3], (1, 9, 9, 1))], axis=0)
             done_batch = tf.concat([done_batch, tf.reshape(experience[4], (1, 1))], axis=0)
+            #print_debug_msg(f"state_batch shape: {state_batch.shape} dtype: {state_batch.dtype}")
+            #print_debug_msg(f"action_batch shape: {action_batch.shape} dtype: {action_batch.dtype}")
+            #print_debug_msg(f"reward_batch shape: {reward_batch.shape} dtype: {reward_batch.dtype}")
+            #print_debug_msg(f"next_state_batch shape: {next_state_batch.shape} dtype: {next_state_batch.dtype}")
+            #print_debug_msg(f"done_batch shape: {done_batch.shape} dtype: {done_batch.dtype}")
 
         # cast both the action batch and the done batch to float tensors
         action_batch = tf.cast(action_batch, dtype=tf.float32)
@@ -312,11 +317,12 @@ class QLearningAgent():
         """
         highest_epoch = self.get_highest_epoch()
         if highest_epoch == -1:
+            print_debug_msg("Loading weights failed!")
             raise FileNotFoundError(f"No weights file found in {self.file_path} directory")
         else:
             highest_file_name = f"epoch_{highest_epoch}.pt"
             highest_file_path = os.path.join(self.file_path, highest_file_name)
-            print_debug_message("Loading weights from " + str(highest_file_path))
+            print_debug_msg("Loading weights from " + str(highest_file_path))
             self.model.load_weights(highest_file_path)
 
     def get_highest_epoch(self) -> int:
@@ -373,7 +379,7 @@ class QLearningAgent():
 def format_action_tuple(action_tuple : Tuple[int, int, int]) -> str:
         return f"({int(action_tuple[0])}, {int(action_tuple[1])}, {int(action_tuple[2])})"
 
-def print_debug_message(message: str) -> None:
+def print_debug_msg(message: str) -> None:
     if int(debug_level) < 3:
         if print_debug:
             print("Beginning debug output since debug=" + str(print_debug))
