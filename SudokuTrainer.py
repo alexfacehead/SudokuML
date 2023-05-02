@@ -94,7 +94,7 @@ class SudokuTrainer():
                     episode_reward += reward
                     state = next_state
                     # new
-                    self.environment.board = state
+                    #self.environment.board = state
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
                     msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
@@ -137,7 +137,7 @@ class SudokuTrainer():
         total_solved = 0
         for i in range(episodes):
             sudoku_board = self.data_loader.get_random_board()
-            state = self.environment.reset()
+            state = self.environment.reset(sudoku_board)
             
             episode_reward = 0
             done = False
@@ -150,8 +150,6 @@ class SudokuTrainer():
                 if action is None or not all_available_actions or is_solved:
                     print_debug_msg("Is solved?:" + str(is_solved))
                     total_solved += 1
-                    if total_solved > episodes:
-                        total_solved = total_solved / 2
                     break
                 next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
                 episode_reward += reward

@@ -59,7 +59,7 @@ def __main__():
 
     learning_rate = 0.1          # The learning rate for the Q-Learning algorithm
     discount_factor = 0.99       # The discount factor for future rewards
-    exploration_rate = 0.5       # Initial exploration rate (epsilon) for the epsilon-greedy strategy
+    exploration_rate = 0.25      # Initial exploration rate (epsilon) for the epsilon-greedy strategy
     exploration_decay = 0.995    # Exploration rate decay factor
 
     # Initialize the TPU strategy
