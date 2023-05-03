@@ -60,10 +60,11 @@ def __main__():
 
     learning_rate = 0.1          # The learning rate for the Q-Learning algorithm
     discount_factor = 0.99       # The discount factor for future rewards
-    exploration_rate = 0.25      # Initial exploration rate (epsilon) for the epsilon-greedy strategy
+    exploration_rate = 0.075      # Initial exploration rate (epsilon) for the epsilon-greedy strategy
     exploration_decay = 0.995    # Exploration rate decay factor
 
     # Initialize the TPU strategy
+    # Initialize the strategy
     try:
         tpu = None
         if 'COLAB_TPU_ADDR' in os.environ:
@@ -73,9 +74,14 @@ def __main__():
             tf.tpu.experimental.initialize_tpu_system(resolver)
             strategy = tf.distribute.TPUStrategy(resolver)
         else:
-            strategy = tf.distribute.OneDeviceStrategy("GPU:0")
+            # Check for available GPUs
+            gpus = tf.config.experimental.list_physical_devices('GPU')
+            if gpus:
+                strategy = tf.distribute.MirroredStrategy()
+            else:
+                strategy = tf.distribute.MirroredStrategy(devices=["CPU:0"])
     except ValueError:
-        strategy = tf.distribute.OneDeviceStrategy("CPU:0")
+        strategy = tf.distribute.MirroredStrategy(devices=["CPU:0"])
 
     # Set the relatively fixed hyper parameters
     decay_steps = 5             # Number of steps before applying the exploration rate decay
@@ -96,7 +102,7 @@ def __main__():
 
         epochs = 5
         allowed_steps = 100
-        batch_size = 20
+        batch_size = 1000
         target_update_interval = 100
         
 
@@ -106,7 +112,7 @@ def __main__():
         #print_debug_msg("Grid search results: Best hyperparameters found: {}".format(best_hyperparameters))
         #print_debug_msg("Grid search results: Best performance: {}".format(best_performance))
         # Standard training loop with predefined params
-        performance = trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval, force)
+        performance = trainer_easy.train(epochs, allowed_steps, batch_size, target_update_interval, force, use_weights=False)
 
 def train_and_tune(hyperparameters, strategy, data_loader, decay_steps, max_memory_size, file_path, force):
     easy_puzzles = data_loader.get_puzzles()[:hyperparameters['number_of_puzzles']]
@@ -116,7 +122,7 @@ def train_and_tune(hyperparameters, strategy, data_loader, decay_steps, max_memo
         trainer_easy = SudokuTrainer(agent, env, data_loader)
 
         # You may need to modify the trainer to return the performance metric
-        episode_rewards = trainer_easy.train(1, hyperparameters['allowed_steps'], hyperparameters['batch_size'], hyperparameters['target_update_interval'], force)
+        episode_rewards = trainer_easy.train(1, hyperparameters['allowed_steps'], hyperparameters['batch_size'], hyperparameters['target_update_interval'], force, use_weights=False)
 
     # Calculate the average performance
     avg_performance = sum(episode_rewards) / len(episode_rewards)

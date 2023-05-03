@@ -133,9 +133,11 @@ class QLearningAgent():
         else:
             if not all_available_actions:  # Check for all_available_actions
                 return None  # Return a special action (e.g., None) when there are no available actions
+            if not valid_actions:
+                print_debug_msg("Not block")
+                return self.exploit(state, all_available_actions)
             return self.exploit(state, valid_actions)  # Exploit using valid_actions
 
-    
     def explore(self, available_actions: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
         """Choose an action randomly from the available actions.
 
@@ -225,7 +227,6 @@ class QLearningAgent():
             None
         """
         self.memory.append((state, action, reward, next_state, done))
-
         msg = """Remembering experience:
         State: {}
         Action: {}
@@ -236,7 +237,7 @@ class QLearningAgent():
         """.format(state, format_action_tuple(action), reward, next_state, done, len(self.memory))
         if self.remember_count == 10:
             print_debug_msg(msg)
-        self.remember_count = self.remember_count + 1
+        self.remember_count += 1
 
     def create_experience_batch(self, batch_size: int) -> tf.Tensor:
         # create empty tensors of appropriate shapes for each element in the experience tuple
@@ -319,11 +320,13 @@ class QLearningAgent():
         """
         highest_epoch = self.get_highest_epoch()
         if highest_epoch == -1:
+            print("Loading weights failed!")
             print_debug_msg("Loading weights failed!")
             raise FileNotFoundError(f"No weights file found in {self.file_path} directory")
         else:
             highest_file_name = f"epoch_{highest_epoch}.pt"
             highest_file_path = os.path.join(self.file_path, highest_file_name)
+            print("Loading weights from " + str(highest_file_path))
             print_debug_msg("Loading weights from " + str(highest_file_path))
             self.model.load_weights(highest_file_path)
 

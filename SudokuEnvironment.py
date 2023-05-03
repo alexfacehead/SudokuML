@@ -1,6 +1,7 @@
 from typing import List, Tuple, Optional
 import tensorflow as tf
 from QLearningAgent import print_debug_msg
+from QLearningAgent import format_action_tuple
 import numpy as np
 
 class SudokuEnvironment():
@@ -25,7 +26,7 @@ class SudokuEnvironment():
         "invalid_move": -10,
         "valid_move": 10,
         "row_col_box_completed": 5,
-        "puzzle_solved": 50
+        "puzzle_solved": 200
         }
 
     def reset(self, sudoku_board: Optional[tf.Tensor] = None) -> tf.Tensor:
@@ -51,34 +52,6 @@ class SudokuEnvironment():
 
         return self.board
     
-    def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool, bool]:
-        row, col, num = action
-        is_solved = self.is_solved()
-
-        if self.board[row, col] != 0 or action not in all_available_actions:
-            self.incorrect_moves_count += 1
-            done = self.incorrect_moves_count >= self.max_incorrect_moves
-            reward = self.get_reward(action)
-            next_state = tf.identity(self.board)
-
-            return next_state, reward, done
-        if action in valid_actions:
-            print_debug_msg("Valid move determined from Step.")
-        done = self.incorrect_moves_count >= self.max_incorrect_moves
-        reward = self.get_reward(action)
-
-        indices = tf.convert_to_tensor([[row, col]])
-        updates = tf.convert_to_tensor([num])
-        self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
-
-        
-        if is_solved:
-            reward += self.REWARD_DICT["puzzle_solved"]
-            print_debug_msg("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
-        next_state = tf.identity(self.board)
-
-        return next_state, reward, done
-
     def render(self):
         """Print the board to the standard output.
         """
@@ -146,7 +119,33 @@ class SudokuEnvironment():
         print("Solved.")
 
         return True
+    
+    def step(self, action: Tuple[int, int, int], valid_actions: List[Tuple[int, int, int]], all_available_actions: List[Tuple[int, int, int]]) -> Tuple[tf.Tensor, float, bool, bool]:
+        row, col, num = action
+        is_solved = self.is_solved()
+        if self.board[row, col] != 0 or action not in all_available_actions:
+            self.incorrect_moves_count += 1
+            done = self.incorrect_moves_count >= self.max_incorrect_moves
+            reward = self.get_reward(action)
+            next_state = tf.identity(self.board)
 
+            return next_state, reward, done
+        if action in valid_actions:
+            print_debug_msg("Valid move determined from Step." + str(format_action_tuple(action)))
+        done = self.incorrect_moves_count >= self.max_incorrect_moves
+        reward = self.get_reward(action)
+
+        indices = tf.convert_to_tensor([[row, col]])
+        updates = tf.convert_to_tensor([num])
+        self.board = tf.tensor_scatter_nd_update(self.board, indices, updates)
+
+        next_state = tf.identity(self.board)
+        is_solved = self.is_solved()
+        if is_solved:
+            reward += self.REWARD_DICT["puzzle_solved"]
+            print_debug_msg("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
+        return next_state, reward, done
+    
     def get_valid_actions(self, board_state: tf.Tensor) -> List[Tuple[int, int, int]]:
         # Find the indices of the zeros in the board state
         zero_indices = tf.where(tf.equal(board_state, 0))
@@ -216,6 +215,9 @@ class SudokuEnvironment():
 
     
     def get_reward(self, action: Tuple[int, int, int]) -> float:
+        if self.is_solved():
+            print_debug_msg("IS SOLVED BLOCK HIT FROM STEP")
+            print("IS SOLVED BLOCK HIT FROM STEP")
         row, col, num = action
         valid_actions = self.get_valid_actions(self.board)
         if self.board[row, col] != 0:
@@ -243,9 +245,6 @@ class SudokuEnvironment():
         else:
             reward = -5 + row_col_box_bonus
 
-        if is_solved:
-            reward += self.REWARD_DICT["puzzle_solved"]
-            print_debug_msg("is_solved bonus: " + str(self.REWARD_DICT["puzzle_solved"]))
         if row_col_box_bonus > 0:
             print_debug_msg("row_col_box_bonus: " + str(row_col_box_bonus))
 

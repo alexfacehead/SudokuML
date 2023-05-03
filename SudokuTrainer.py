@@ -2,8 +2,11 @@ import DataLoader
 import QLearningAgent
 import SudokuEnvironment
 import tensorflow as tf
+print(tf.__version__)
+print("Available devices:", tf.config.list_logical_devices())
 from typing import List
 from QLearningAgent import print_debug_msg
+import logging
 
 # Threading / popups
 import tkinter as tk
@@ -28,9 +31,11 @@ class SudokuTrainer():
         self.total_steps = 0
         self.current_puzzle_steps = 0
 
-    def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int, force: bool) -> List[int]:
-        print_debug_msg("Attempting to load weights...")
-        self.agent.load_weights()
+    def train(self, epochs: int, allowed_steps: int, batch_size: int, target_update_interval: int, force: bool, use_weights=False) -> List[int]:
+        if use_weights:
+            print("Attempting to load weights...")
+            print_debug_msg("Attempting to load weights...")
+            self.agent.load_weights()
         solved_puzzles = 0  # Initialize solved puzzles counter
         for epoch in range(epochs):
             msg1 = "Epoch # " + str(epoch) + "\n"
@@ -40,27 +45,25 @@ class SudokuTrainer():
             
             # Only by default evaluate AFTER the first epoch, or if the force flag is used
             if force or epoch > 0:
-                num_tests = 5
+                num_tests = 10
                 avg_reward, total_solved = self.evaluate(num_tests)
                 total_msg_formatted = str(total_solved) + " / " + str(num_tests)
                 print(total_msg_formatted)
                 print(f"Evaluation: Average reward over {num_tests} episodes: {avg_reward}")
                 print_debug_msg(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
                 print_debug_msg(total_msg_formatted)
-                print("Saving weights")
-                print_debug_msg("Saving weights")
-                self.agent.save_weights()
+                #print("Saving weights")
+                #print_debug_msg("Saving weights")
+                #self.agent.save_weights()
                 if force:
                     return avg_reward
             
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0
             for sudoku_board in puzzles:
-                if puzzle_counter % 100 == 0 and puzzle_counter != 0:
-                    threading.Thread(target=show_popup, args=("50 puzzles completed",)).start()
-                str1 = "Board: " + str(sudoku_board) + "\n"
-                print(str1)
-                QLearningAgent.print_debug_msg(str1)
+                #checkpoint_number = 1000
+                #if puzzle_counter % checkpoint_number == 0 and puzzle_counter != 0:
+                #    threading.Thread(target=show_popup, args=(str(checkpoint_number) + " puzzles completed",)).start()
                 puzzle_counter += 1
                 msg2 = "Puzzle # " + str(puzzle_counter) + "\n"
                 print(msg2)
@@ -73,33 +76,29 @@ class SudokuTrainer():
 
                 for _ in range(allowed_steps):
                     is_solved = self.environment.is_solved()
+                    if is_solved:
+                        solved_puzzles += 1
                     self.agent.decay_exploration_rate(self.total_steps)
                     valid_actions = self.environment.get_valid_actions(state)
-                    if not valid_actions:
-                        print_debug_msg("FINAL STATE: " + str(self.environment.board))
-                        is_solved = self.environment.is_solved()
-                        if is_solved:
-                            print_debug_msg("Caught solved")
-                            solved_puzzles += 1
-                        break
                     all_available_actions = self.environment.get_all_available_actions(state)
+                    if not all_available_actions: # originally not valid_actions
+                        if not self.environment.is_solved():
+                            print_debug_msg("Failed.")
+                        print_debug_msg("FINAL STATE: " + str(self.environment.board))
+                        break
                     action = self.agent.choose_action(state, valid_actions, all_available_actions)
                     if action is None or not all_available_actions:
+                        print_debug_msg("Got action: None or no available actions to take.")
                         break
                     next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
-                    
                     if done:
+                        print_debug_msg("Done hit")
                         break
-                    is_solved = self.environment.is_solved()
-                    if is_solved:
-                        "Finishing episode reward: " + str(episode_reward) + "\n"
-                        solved_puzzles += 1
-                        break
+                    print_debug_msg("Attempting to store memory...")
                     self.agent.remember(state, action, reward, next_state, done)
                     episode_reward += reward
                     state = next_state
-                    # new
-                    #self.environment.board = state
+
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
                     msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
@@ -117,7 +116,7 @@ class SudokuTrainer():
                     if isinstance(exploration_rate, tf.Tensor):
                         exploration_rate = exploration_rate.numpy().item()
                     msg3 = "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
-                    print(msg3)
+                    #print(msg3)
                     print_debug_msg(msg3)
 
                     self.total_steps += 1
@@ -152,9 +151,10 @@ class SudokuTrainer():
                 action = self.agent.choose_action(state, valid_actions, all_available_actions, train=False)
                 is_solved = self.environment.is_solved()
 
-                if action is None or not all_available_actions or is_solved or not valid_actions:
+                if action is None or not all_available_actions or is_solved: # used to have not valid_actions
                     print_debug_msg("Is solved?:" + str(is_solved))
                     if is_solved:
+                        print("End solved.")
                         total_solved += 1
                     break
                 action_tuple = QLearningAgent.format_action_tuple(action)
@@ -163,7 +163,7 @@ class SudokuTrainer():
                 episode_reward += reward
                 state = next_state
 
-            episode_rewards[i].assign(episode_reward)
+            episode_rewards = tf.tensor_scatter_nd_update(episode_rewards, [[i]], [episode_reward])
 
         print_debug_msg("Evaluation results:\nEpisode rewards: " + str(episode_rewards))
         return tf.reduce_mean(episode_rewards), total_solved
