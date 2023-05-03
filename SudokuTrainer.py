@@ -47,6 +47,11 @@ class SudokuTrainer():
                 print(f"Evaluation: Average reward over {num_tests} episodes: {avg_reward}")
                 print_debug_msg(f"Evaluation: Average reward over 20 episodes: {avg_reward}")
                 print_debug_msg(total_msg_formatted)
+                print("Saving weights")
+                print_debug_msg("Saving weights")
+                self.agent.save_weights()
+                if force:
+                    return avg_reward
             
             puzzles = self.data_loader.get_puzzles()
             puzzle_counter = 0
@@ -98,8 +103,7 @@ class SudokuTrainer():
                     msg3 = "Running total step #" + str(self.total_steps) + "\n"
                     msg3 = msg3 + "Puzzle step # " + str(self.current_puzzle_steps) + "\n" + "Chosen action: " + str(QLearningAgent.format_action_tuple(action)) + "\n" + "Reward: " + str(reward) + "\n" + \
                     "Episode reward: " + str(episode_reward) + "\n"
-                    #print_debug_msg(msg3)
-
+                    print_debug_msg(msg3)
                     if done or self.current_puzzle_steps == allowed_steps - 1:
                         print("hit done/self.current_puzzle_steps max block train")
                         break
@@ -112,7 +116,7 @@ class SudokuTrainer():
                     exploration_rate = self.agent.exploration_rate
                     if isinstance(exploration_rate, tf.Tensor):
                         exploration_rate = exploration_rate.numpy().item()
-                    msg3 = msg3 + "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
+                    msg3 = "\n" + "Exploration rate (epsilon): " + str(exploration_rate) + "\n"
                     print(msg3)
                     print_debug_msg(msg3)
 
@@ -147,10 +151,14 @@ class SudokuTrainer():
                 all_available_actions = self.environment.get_all_available_actions(state)
                 action = self.agent.choose_action(state, valid_actions, all_available_actions, train=False)
                 is_solved = self.environment.is_solved()
-                if action is None or not all_available_actions or is_solved:
+
+                if action is None or not all_available_actions or is_solved or not valid_actions:
                     print_debug_msg("Is solved?:" + str(is_solved))
-                    total_solved += 1
+                    if is_solved:
+                        total_solved += 1
                     break
+                action_tuple = QLearningAgent.format_action_tuple(action)
+                print_debug_msg("Chosen action: " + str(action_tuple))
                 next_state, reward, done = self.environment.step(action, valid_actions, all_available_actions)
                 episode_reward += reward
                 state = next_state

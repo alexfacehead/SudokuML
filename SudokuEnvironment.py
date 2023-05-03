@@ -63,7 +63,7 @@ class SudokuEnvironment():
 
             return next_state, reward, done
         if action in valid_actions:
-            print_debug_msg("Valid move determine from Step.")
+            print_debug_msg("Valid move determined from Step.")
         done = self.incorrect_moves_count >= self.max_incorrect_moves
         reward = self.get_reward(action)
 

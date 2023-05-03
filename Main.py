@@ -1,6 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
+#tf.status.expect_partial()
 from SudokuTrainer import SudokuTrainer
 from QLearningAgent import QLearningAgent
 from SudokuEnvironment import SudokuEnvironment
@@ -91,9 +92,9 @@ def __main__():
     with strategy.scope():
         env = SudokuEnvironment(easy_puzzles, max_incorrect_moves=20) # pass the list of puzzles to the environment
         agent = QLearningAgent(learning_rate, discount_factor, exploration_rate, exploration_decay, strategy, decay_steps, max_memory_size, file_path)
-        trainer_easy = SudokuTrainer(agent, env, data_loader_easy_2)
+        trainer_easy = SudokuTrainer(agent, env, data_loader_easy_4)
 
-        epochs = 10
+        epochs = 5
         allowed_steps = 100
         batch_size = 20
         target_update_interval = 100
